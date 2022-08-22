@@ -27,6 +27,7 @@ import {SpinalNode} from "spinal-model-graph"
 import {spinalCore,Process} from "spinal-core-connectorjs_type";
 import * as constants from "./constants"
 import { NetworkService, InputDataEndpoint, InputDataEndpointDataType, InputDataEndpointType }  from "spinal-model-bmsnetwork"
+import pilotage_utilities from "./pilotage_utilities";
 
 export const networkService = new NetworkService()
 
@@ -201,8 +202,8 @@ export const networkService = new NetworkService()
                             let endpoints = endpointObject[ep];
                             if(endpoints.length!=0){
                                 for(let x of endpoints){
+
                                     //copier le currentValue du controlPointCommand dans la currentValue de chaque endPoint associé
-                                    
                                     // (await x.element.load()).currentValue.set(controlPointValueModel.get())
                                     await this.updateControlEndpointWithAnalytic(x, controlPointValueModel.get(),
                                      InputDataEndpointDataType.Real, InputDataEndpointType.Other);
@@ -227,7 +228,7 @@ export const networkService = new NetworkService()
      * @returns Promise
      */
     public async updateControlEndpointWithAnalytic(model:SpinalNodeRef, valueToPush:any, dataType:any, type:any): Promise<void>{
-        if(valueToPush != undefined){
+        if(valueToPush != undefined) {
             const input : InputDataEndpoint = {
                 id: "",
                 name: "",
@@ -239,7 +240,9 @@ export const networkService = new NetworkService()
                 nodeTypeName: "BmsEndpoint"// should be SpinalBmsEndpoint.nodeTypeName || 'BmsEndpoint'
             };
             const time = new Date();   //Register in TimeSeries
-            await networkService.updateEndpoint(model,input,time);
+            const nodeId = model.id.get();
+            const realNode = SpinalGraphService.getRealNode(nodeId);
+            await Promise.all([pilotage_utilities.sendUpdateRequest(nodeId, realNode,valueToPush), networkService.updateEndpoint(model,input,time)])
             console.log(model.name.get() + " ==>  is updated ");
         }
         else{

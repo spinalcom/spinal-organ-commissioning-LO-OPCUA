@@ -27,6 +27,7 @@
     "spinal-env-viewer-plugin-documentation": "git+https://github.com/spinalcom/spinal-env-viewer-plugin-documentation.git",
     "spinal-env-viewer-plugin-documentation-service": "git+https://github.com/spinalcom/spinal-env-viewer-plugin-documentation-service.git",
     "spinal-env-viewer-plugin-excel-manager-service": "git+https://github.com/spinalcom/spinal-env-viewer-plugin-excel-manager-service.git",
+    "spinal-model-bacnet": "git+https://github.com/spinalcom/spinal-model-bacnet.git",
     "spinal-model-bmsnetwork": "git+https://github.com/spinalcom/spinal-model-bmsnetwork.git",
     "spinal-model-graph": "git+https://github.com/spinalcom/spinal-model-graph.git",
     "spinal-model-timeseries": "git+https://github.com/spinalcom/spinal-model-timeseries.git",
