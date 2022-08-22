@@ -26,7 +26,7 @@
 
 export const MONITORABLE_ROOM = Object.freeze({
     context: "Contexte de salle",
-    category: "Open space"
+    category: "Espaces de réservation"
 });
 
 export const ENDPOINT_GROUP_COMMANDE = ["Command_Light","Command_Blind","Command_Temperature"]

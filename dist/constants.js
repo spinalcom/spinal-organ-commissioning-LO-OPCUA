@@ -26,7 +26,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ENDPOINT_GROUP_COMMANDE = exports.MONITORABLE_ROOM = void 0;
 exports.MONITORABLE_ROOM = Object.freeze({
     context: "Contexte de salle",
-    category: "Open space"
+    category: "Espaces de réservation"
 });
 exports.ENDPOINT_GROUP_COMMANDE = ["Command_Light", "Command_Blind", "Command_Temperature"];
 // export const ENDPOINT_GROUP_COMMANDE = Object.freeze({
