@@ -27,7 +27,6 @@ exports.Utils = exports.networkService = void 0;
 const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const constants = require("./constants");
 const spinal_model_bmsnetwork_1 = require("spinal-model-bmsnetwork");
-const pilotage_utilities_1 = require("./pilotage_utilities");
 exports.networkService = new spinal_model_bmsnetwork_1.NetworkService();
 /**
  * @export
@@ -171,11 +170,16 @@ class Utils {
                             //Avoir la liste des endPoints
                             let endpoints = endpointObject[ep];
                             if (endpoints.length != 0) {
-                                for (let x of endpoints) {
-                                    //copier le currentValue du controlPointCommand dans la currentValue de chaque endPoint associé
-                                    // (await x.element.load()).currentValue.set(controlPointValueModel.get())
-                                    await this.updateControlEndpointWithAnalytic(x, controlPointValueModel.get(), spinal_model_bmsnetwork_1.InputDataEndpointDataType.Real, spinal_model_bmsnetwork_1.InputDataEndpointType.Other);
-                                }
+                                let promises = endpoints.map(x => {
+                                    return this.updateControlEndpointWithAnalytic(x, controlPointValueModel.get(), spinal_model_bmsnetwork_1.InputDataEndpointDataType.Real, spinal_model_bmsnetwork_1.InputDataEndpointType.Other);
+                                });
+                                await Promise.all(promises);
+                                // for(let x of endpoints){
+                                //     //copier le currentValue du controlPointCommand dans la currentValue de chaque endPoint associé
+                                //     // (await x.element.load()).currentValue.set(controlPointValueModel.get())
+                                //     await this.updateControlEndpointWithAnalytic(x, controlPointValueModel.get(),
+                                //      InputDataEndpointDataType.Real, InputDataEndpointType.Other);
+                                // }
                             }
                         });
                     }
@@ -205,7 +209,8 @@ class Utils {
             const time = new Date(); //Register in TimeSeries
             const nodeId = model.id.get();
             const realNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(nodeId);
-            await Promise.all([pilotage_utilities_1.default.sendUpdateRequest(nodeId, realNode, valueToPush), exports.networkService.updateEndpoint(model, input, time)]);
+            // await Promise.all([pilotage_utilities.sendUpdateRequest(nodeId, realNode,valueToPush), networkService.updateEndpoint(model,input,time)])
+            await exports.networkService.updateEndpoint(model, input, time);
             console.log(model.name.get() + " ==>  is updated ");
         }
         else {
