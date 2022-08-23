@@ -179,6 +179,7 @@ export const networkService = new NetworkService()
 
 
 
+
     /**
      * @param  {Array<SpinalNodeRef>} controlPointList
      * @param  {Object} endpointObject
@@ -201,14 +202,20 @@ export const networkService = new NetworkService()
                             //Avoir la liste des endPoints
                             let endpoints = endpointObject[ep];
                             if(endpoints.length!=0){
-                                for(let x of endpoints){
-
-                                    //copier le currentValue du controlPointCommand dans la currentValue de chaque endPoint associé
-                                    // (await x.element.load()).currentValue.set(controlPointValueModel.get())
-                                    await this.updateControlEndpointWithAnalytic(x, controlPointValueModel.get(),
+                                let promises = endpoints.map(x => {
+                                    return this.updateControlEndpointWithAnalytic(x, controlPointValueModel.get(),
                                      InputDataEndpointDataType.Real, InputDataEndpointType.Other);
+                                })
 
-                                }
+                                await Promise.all(promises)
+                                // for(let x of endpoints){
+
+                                //     //copier le currentValue du controlPointCommand dans la currentValue de chaque endPoint associé
+                                //     // (await x.element.load()).currentValue.set(controlPointValueModel.get())
+                                //     await this.updateControlEndpointWithAnalytic(x, controlPointValueModel.get(),
+                                //      InputDataEndpointDataType.Real, InputDataEndpointType.Other);
+
+                                // }
                             }
                         });
 
@@ -242,7 +249,9 @@ export const networkService = new NetworkService()
             const time = new Date();   //Register in TimeSeries
             const nodeId = model.id.get();
             const realNode = SpinalGraphService.getRealNode(nodeId);
-            await Promise.all([pilotage_utilities.sendUpdateRequest(nodeId, realNode,valueToPush), networkService.updateEndpoint(model,input,time)])
+            // await Promise.all([pilotage_utilities.sendUpdateRequest(nodeId, realNode,valueToPush), networkService.updateEndpoint(model,input,time)])
+            await networkService.updateEndpoint(model,input,time);
+
             console.log(model.name.get() + " ==>  is updated ");
         }
         else{

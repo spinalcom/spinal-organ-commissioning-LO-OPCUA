@@ -1,5 +1,5 @@
 import { SpinalNode } from "spinal-env-viewer-graph-service";
-import { SpinalPilotModel } from 'spinal-model-bacnet';
+import { SpinalPilotModel } from "spinal-model-bacnet";
 declare const _default: {
     getEndpointOrgan(endpointNodeId: any): any;
     getDevices(endpointNodeId: any): Promise<SpinalNode[]>;
