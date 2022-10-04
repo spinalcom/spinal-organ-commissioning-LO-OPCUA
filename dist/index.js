@@ -51,31 +51,29 @@ class SpinalMain {
             });
         });
     }
+    /**
+     * The main function of the class
+     */
     async MainJob() {
         const contextName = constants.MONITORABLE_ROOM.context;
         const categoryName = constants.MONITORABLE_ROOM.category;
         let rooms = await utils.getMonitorableRoom(contextName, categoryName);
         for (let room of rooms) {
-            console.log("Room name ====> ", room.name.get());
-            // let cp = await utils.getCommandControlPoint(rooms[0].id.get())
-            // let ep = await utils.getRoomBmsEndpointPoint(rooms[0].id.get())
             let cp = await utils.getCommandControlPoint(room.id.get());
-            let ep = await utils.getRoomBmsEndpointPoint(room.id.get());
+            let ep = await utils.getRoomBmsEndpoints(room.id.get());
             let group = await utils.getBmsEndpointGroup(ep);
+            console.log("\nRoom name ====> ", room.name.get());
             await utils.bindControlpointToEndpoint(cp, group);
         }
         console.log("DONE");
     }
 }
-async function job() {
+async function Main() {
     try {
+        console.log('Organ Start');
         const spinalMain = new SpinalMain();
         await spinalMain.init();
         await spinalMain.MainJob();
-        // setTimeout(() => {
-        //   console.log('STOP OK');
-        //   process.exit(0);
-        // }, 1000 * 60 * 5); // (5min)
     }
     catch (error) {
         console.error(error);
@@ -84,16 +82,6 @@ async function job() {
             process.exit(0);
         }, 5000);
     }
-}
-async function Main() {
-    // start every 1h+10min
-    console.log('Organ Start');
-    // cron.schedule('10 * * * *', async (): Promise<void> => {
-    //   console.log('Analytic job Start');
-    //   await job();
-    // });
-    //FOR DEBUG
-    await job();
 }
 // Call main function
 Main();

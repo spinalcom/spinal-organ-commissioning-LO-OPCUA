@@ -24,11 +24,15 @@
 
 
 
-export const MONITORABLE_ROOM = Object.freeze({
-    context: "Contexte de salle",
-    category: "Espaces de réservation"
-});
+// export const MONITORABLE_ROOM = Object.freeze({
+//     context: "Contexte de salle",
+//     category: "Espaces de réservation"
+// });
 
+export const MONITORABLE_ROOM = Object.freeze({
+    context: "Zones",
+    category: "Etage 1"
+});
 export const ENDPOINT_GROUP_COMMANDE = ["Command_Light","Command_Blind","Command_Temperature"]
 
 

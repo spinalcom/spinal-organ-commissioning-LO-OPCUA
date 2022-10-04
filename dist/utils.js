@@ -27,13 +27,20 @@ exports.Utils = exports.networkService = void 0;
 const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const constants = require("./constants");
 const spinal_model_bmsnetwork_1 = require("spinal-model-bmsnetwork");
+const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
 exports.networkService = new spinal_model_bmsnetwork_1.NetworkService();
 /**
  * @export
  * @class Utils
  */
 class Utils {
+    constructor() {
+        this.ATTRIBUTE_NAME = "controlValue";
+        this.ATTRIBUTE_CATEGORY_NAME = "default";
+        this.DEFAULT_COMMAND_VALUE = "null";
+    }
     /**
+     * Function that returns the rooms in a specified category of a geographicRoomGroupContext
      * @param  {string} contextName
      * @param  {string} categoryName
      * @returns Promise
@@ -61,10 +68,11 @@ class Utils {
             }
             return false;
         });
-        console.log("Monitorable rooms : ", rooms);
+        // console.log("Monitorable rooms : ", rooms);
         return rooms;
     }
     /**
+     * Function that return the command controlPoint of a room
      * @param  {string} roomId
      * @returns Promise
      */
@@ -86,15 +94,16 @@ class Utils {
                 }
             }
         }
-        console.log("Room command controlPoints : ", commandControlPoint);
+        // console.log("Room command controlPoints : ",commandControlPoint);
         return commandControlPoint;
     }
     /**
+     * Function that return an object of endpointGroupCommand
+     *  = {Command_Light: [endpoint1 ....], Command_Blind: [endpoint2 ....], Command_Temperature: [endpoint3 ....]}
      * @param  {Array<SpinalNodeRef>} endPointList
      * @returns Promise
      */
     async getBmsEndpointGroup(endPointList) {
-        //build the object = {Command_Light: [], Command_Blind: [], Command_Temperature: []}
         let endpointGroupCommand = this.getObjectFormat();
         if (endPointList.length != 0) {
             //get bmsEndpointGroup for every endpoint
@@ -102,19 +111,19 @@ class Utils {
                 let group = await spinal_env_viewer_graph_service_1.SpinalGraphService.getParents(endpoint.id.get(), "groupHasBmsEndpoint");
                 if (group.length != 0) {
                     for (let elt of group) {
-                        //add into the object, every endpoint that is linked to it's corresponding bmsEndpointGroup command
                         endpointGroupCommand = this.orderEndpointGroupCommand(elt, endpoint, endpointGroupCommand);
                     }
                 }
             }
         }
-        console.log(endpointGroupCommand);
+        // console.log(endpointGroupCommand)
         return endpointGroupCommand;
     }
     /**
+     * Add into the object, every endpoint that is linked to it's corresponding bmsEndpointGroup command
      * @param  {SpinalNodeRef} group
      * @param  {SpinalNodeRef} endpoint
-     * @param  {Object} object
+     * @param  {Object} object = {Command_Light: [], Command_Blind: [], Command_Temperature: []}
      * @returns Object
      */
     orderEndpointGroupCommand(group, endpoint, object) {
@@ -125,6 +134,7 @@ class Utils {
         return object;
     }
     /**
+     * function that return the object = {Command_Light: [], Command_Blind: [], Command_Temperature: []}
      * @returns Object
      */
     getObjectFormat() {
@@ -136,21 +146,24 @@ class Utils {
         return endpointGroupCommand;
     }
     /**
+     * Function that return a list of all romm's bmsEndpoints
      * @param  {string} roomId
      * @returns Promise
      */
-    async getRoomBmsEndpointPoint(roomId) {
+    async getRoomBmsEndpoints(roomId) {
         let roomBmsEndPoint = [];
         let bimObjects = await spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(roomId, ["hasBimObject"]);
-        console.log("BIM OBJECT : ", bimObjects);
+        // console.log("BIM OBJECT : ",bimObjects)
         for (let obj of bimObjects) {
             let bmsEndPoint = await spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(obj.id.get(), ["hasBmsEndpoint"]);
             roomBmsEndPoint = roomBmsEndPoint.concat(bmsEndPoint);
         }
-        console.log("ENDPOINT LIST : ", roomBmsEndPoint);
+        // console.log("ENDPOINT LIST : ",roomBmsEndPoint);
         return roomBmsEndPoint;
     }
     /**
+     * Function that bind the command controlPoint of a romm with it's specified endpoints.
+     * And update the endpoints value when the command controlPoint of a romm is modified
      * @param  {Array<SpinalNodeRef>} controlPointList
      * @param  {Object} endpointObject
      * @returns Promise
@@ -166,56 +179,84 @@ class Utils {
                         let controlPointValueModel = (await cp.element.load()).currentValue;
                         //bind le controlPoint aux endpoint
                         controlPointValueModel.bind(async () => {
-                            console.log("Endpoints BINDED");
+                            // console.log("Endpoints BINDED");        
                             //Avoir la liste des endPoints
                             let endpoints = endpointObject[ep];
                             if (endpoints.length != 0) {
-                                let promises = endpoints.map(x => {
-                                    return this.updateControlEndpointWithAnalytic(x, controlPointValueModel.get(), spinal_model_bmsnetwork_1.InputDataEndpointDataType.Real, spinal_model_bmsnetwork_1.InputDataEndpointType.Other);
+                                //copier le currentValue du controlPointCommand dans l'attribut controlValue de chaque endPoint associé
+                                let promises = await endpoints.map(x => {
+                                    let realNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(x.id.get());
+                                    return this.updateControlValueAttribute(realNode, this.ATTRIBUTE_CATEGORY_NAME, this.ATTRIBUTE_NAME, controlPointValueModel.get());
                                 });
                                 await Promise.all(promises);
-                                // for(let x of endpoints){
-                                //     //copier le currentValue du controlPointCommand dans la currentValue de chaque endPoint associé
-                                //     // (await x.element.load()).currentValue.set(controlPointValueModel.get())
-                                //     await this.updateControlEndpointWithAnalytic(x, controlPointValueModel.get(),
+                                // let promises = endpoints.map(x => {
+                                //     return this.updateControlEndpointWithAnalytic(x, controlPointValueModel.get(),
                                 //      InputDataEndpointDataType.Real, InputDataEndpointType.Other);
-                                // }
+                                // })
+                                // await Promise.all(promises)
                             }
-                        });
+                        }, false);
                     }
                 }
             }
         }
     }
+    // /**
+    //  * @param  {SpinalNodeRef} model
+    //  * @param  {any} valueToPush
+    //  * @param  {any} dataType
+    //  * @param  {any} type
+    //  * @returns Promise
+    //  */
+    // public async updateControlEndpointWithAnalytic(model:SpinalNodeRef, valueToPush:any, dataType:any, type:any): Promise<void>{
+    //     if(valueToPush != undefined) {
+    //         const input : InputDataEndpoint = {
+    //             id: "",
+    //             name: "",
+    //             path: "",
+    //             currentValue: valueToPush,
+    //             unit: "",
+    //             dataType: dataType,
+    //             type: type,
+    //             nodeTypeName: "BmsEndpoint"// should be SpinalBmsEndpoint.nodeTypeName || 'BmsEndpoint'
+    //         };
+    //         const time = new Date();   //Register in TimeSeries
+    //         const nodeId = model.id.get();
+    //         const realNode = SpinalGraphService.getRealNode(nodeId);
+    //         // await Promise.all([pilotage_utilities.sendUpdateRequest(nodeId, realNode,valueToPush), networkService.updateEndpoint(model,input,time)])
+    //         await networkService.updateEndpoint(model,input,time);
+    //         console.log(model.name.get() + " ==>  is updated ");
+    //     }
+    //     else{
+    //         console.log(valueToPush + " value to push in node : " + model.name.get() + " -- ABORTED !");
+    //     }
+    // }
     /**
-     * @param  {SpinalNodeRef} model
+     * Function that search for the targeted attribute of a node and update it's value
+     * @param  {SpinalNode} endpointNode
      * @param  {any} valueToPush
-     * @param  {any} dataType
-     * @param  {any} type
      * @returns Promise
      */
-    async updateControlEndpointWithAnalytic(model, valueToPush, dataType, type) {
-        if (valueToPush != undefined) {
-            const input = {
-                id: "",
-                name: "",
-                path: "",
-                currentValue: valueToPush,
-                unit: "",
-                dataType: dataType,
-                type: type,
-                nodeTypeName: "BmsEndpoint" // should be SpinalBmsEndpoint.nodeTypeName || 'BmsEndpoint'
-            };
-            const time = new Date(); //Register in TimeSeries
-            const nodeId = model.id.get();
-            const realNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(nodeId);
-            // await Promise.all([pilotage_utilities.sendUpdateRequest(nodeId, realNode,valueToPush), networkService.updateEndpoint(model,input,time)])
-            await exports.networkService.updateEndpoint(model, input, time);
-            console.log(model.name.get() + " ==>  is updated ");
+    async updateControlValueAttribute(endpointNode, attributeCategoryName, attributeName, valueToPush) {
+        const attribute = await this._getEndpointControlValue(endpointNode, attributeCategoryName, attributeName);
+        if (attribute) {
+            attribute.value.set(valueToPush);
+            console.log(endpointNode.info.name.get() + " ==>  is updated with the value : " + attribute.value);
         }
         else {
-            console.log(valueToPush + " value to push in node : " + model.name.get() + " -- ABORTED !");
+            console.log(valueToPush + " value to push in node : " + endpointNode.info.name.get() + " -- ABORTED !");
         }
+    }
+    /**
+     * Function that search and return the targeted attribute. Creates it if it doesn't exist with a default value of null
+     * @param  {SpinalNode} endpointNode
+     * @returns Promise
+     */
+    async _getEndpointControlValue(endpointNode, attributeCategoryName, attributeName) {
+        const [attribute] = await spinal_env_viewer_plugin_documentation_service_1.attributeService.getAttributesByCategory(endpointNode, attributeCategoryName, attributeName);
+        if (attribute)
+            return attribute;
+        return spinal_env_viewer_plugin_documentation_service_1.attributeService.addAttributeByCategoryName(endpointNode, this.ATTRIBUTE_CATEGORY_NAME, this.ATTRIBUTE_NAME, this.DEFAULT_COMMAND_VALUE);
     }
 }
 exports.Utils = Utils;

@@ -58,31 +58,24 @@ class SpinalMain {
 
 
   
+    /**
+     * The main function of the class
+     */
     public async MainJob() {
         const contextName = constants.MONITORABLE_ROOM.context;
         const categoryName = constants.MONITORABLE_ROOM.category;
 
         let rooms = await utils.getMonitorableRoom(contextName,categoryName);
-        for(let room of rooms){
-            console.log("Room name ====> ",room.name.get())
-            // let cp = await utils.getCommandControlPoint(rooms[0].id.get())
-            // let ep = await utils.getRoomBmsEndpointPoint(rooms[0].id.get())
-
+        for (let room of rooms){
             let cp = await utils.getCommandControlPoint(room.id.get())
-            let ep = await utils.getRoomBmsEndpointPoint(room.id.get())
+            let ep = await utils.getRoomBmsEndpoints(room.id.get())
             let group = await utils.getBmsEndpointGroup(ep);
-            
+
+            console.log("\nRoom name ====> ",room.name.get())
             await utils.bindControlpointToEndpoint(cp,group);
-
         }
-
-        
-
         console.log("DONE");
-        
     }
-
-    
    
 }
 
@@ -91,36 +84,21 @@ class SpinalMain {
 
 
 
-async function job() {
+async function Main() {
     try {
-      const spinalMain = new SpinalMain();
-      await spinalMain.init();
-      await spinalMain.MainJob();
-      // setTimeout(() => {
-      //   console.log('STOP OK');
-      //   process.exit(0);
-      // }, 1000 * 60 * 5); // (5min)
+        console.log('Organ Start');
+        const spinalMain = new SpinalMain();
+        await spinalMain.init();
+        await spinalMain.MainJob();
     } 
     catch (error) {
-      console.error(error);
-      setTimeout(() => {
-        console.log('STOP ERROR');
-        process.exit(0);
-      }, 5000);
+        console.error(error);
+        setTimeout(() => {
+            console.log('STOP ERROR');
+            process.exit(0);
+        }, 5000);
     }
   }
-
-async function Main() {
-    // start every 1h+10min
-    console.log('Organ Start');
-    // cron.schedule('10 * * * *', async (): Promise<void> => {
-    //   console.log('Analytic job Start');
-    //   await job();
-    // });
-
-    //FOR DEBUG
-    await job();
-}
 
 
 // Call main function
