@@ -63,7 +63,7 @@ class SpinalMain {
             let ep = await utils.getRoomBmsEndpoints(room.id.get());
             let group = await utils.getBmsEndpointGroup(ep);
             console.log("\nRoom name ====> ", room.name.get());
-            await utils.bindControlpointToEndpoint(cp, group);
+            await utils.bindControlpointToEndpoint(cp, group, ep);
         }
         console.log("DONE");
     }

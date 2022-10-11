@@ -58,7 +58,7 @@ export declare class Utils {
      * @param  {Object} endpointObject
      * @returns Promise
      */
-    bindControlpointToEndpoint(controlPointList: Array<SpinalNodeRef>, endpointObject: Object): Promise<void>;
+    bindControlpointToEndpoint(controlPointList: Array<SpinalNodeRef>, endpointObject: Object, roomBmsEndPoints: SpinalNodeRef[]): Promise<void>;
     /**
      * Function that search for the targeted attribute of a node and update it's value
      * @param  {SpinalNode} endpointNode

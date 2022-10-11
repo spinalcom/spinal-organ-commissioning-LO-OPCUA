@@ -23,19 +23,24 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ENDPOINT_GROUP_COMMANDE = exports.MONITORABLE_ROOM = void 0;
-// export const MONITORABLE_ROOM = Object.freeze({
-//     context: "Contexte de salle",
-//     category: "Espaces de réservation"
-// });
+exports.OCC_MODE_SP = exports.HVAC_MODE_STATUS_NAME = exports.HVAC_MODE_STATUS = exports.ENDPOINT_GROUP_COMMANDE = exports.MONITORABLE_ROOM = void 0;
 exports.MONITORABLE_ROOM = Object.freeze({
-    context: "Zones",
-    category: "Etage 1"
+    context: "Contexte de salle",
+    category: "Espaces de réservation"
 });
 exports.ENDPOINT_GROUP_COMMANDE = ["Command_Light", "Command_Blind", "Command_Temperature"];
-// export const ENDPOINT_GROUP_COMMANDE = Object.freeze({
-//     Command_Light: [],
-//     Command_Blind: [],
-//     Command_Temperature: []
-// });
+exports.HVAC_MODE_STATUS = Object.freeze({
+    1: "Auto",
+    2: "Heat",
+    3: "Mmg_Wmup",
+    4: "Cool",
+    5: "Night_Purge",
+    6: "Pre_Cool",
+    7: "Off"
+});
+exports.HVAC_MODE_STATUS_NAME = "HVACModeStatus";
+exports.OCC_MODE_SP = Object.freeze({
+    Heat: "OccHeatSP",
+    Cool: "OccCoolSP"
+});
 //# sourceMappingURL=constants.js.map

@@ -29,6 +29,7 @@ import * as constants from "./constants"
 import { NetworkService, InputDataEndpoint, InputDataEndpointDataType, InputDataEndpointType }  from "spinal-model-bmsnetwork"
 import { SpinalAttribute } from "spinal-models-documentation/declarations";
 import { attributeService, ICategory } from "spinal-env-viewer-plugin-documentation-service";
+import * as controlCVC from "./controlCVC"
 
 export const networkService = new NetworkService()
 
@@ -190,7 +191,7 @@ export const networkService = new NetworkService()
      * @param  {Object} endpointObject
      * @returns Promise
      */
-    public async bindControlpointToEndpoint(controlPointList: Array<SpinalNodeRef>, endpointObject: Object): Promise<void>{
+    public async bindControlpointToEndpoint(controlPointList: Array<SpinalNodeRef>, endpointObject: Object, roomBmsEndPoints: SpinalNodeRef[]): Promise<void>{
         if(controlPointList.length!=0){
             //Parcourir la liste des controlPoint de commande d'une pièce
             for(let cp of controlPointList){
@@ -198,74 +199,60 @@ export const networkService = new NetworkService()
                 for(let ep in endpointObject){
                     //si le nom du groupe correspond au nom du controlPointCommand alors lié le controlPoint à la liste des endpoints
                     if(cp.name.get().toLowerCase()==ep.toLowerCase()){
-                        let controlPointValueModel = (await cp.element.load()).currentValue;
-                        
-                        //bind le controlPoint aux endpoint
-                        controlPointValueModel.bind(async () =>{
-                            // console.log("Endpoints BINDED");        
-                        
-                            //Avoir la liste des endPoints
-                            let endpoints = endpointObject[ep];
-                            if(endpoints.length!=0){
-                                //copier le currentValue du controlPointCommand dans l'attribut controlValue de chaque endPoint associé
-                                let promises = await endpoints.map(x => { 
-                                    let realNode = SpinalGraphService.getRealNode(x.id.get())
-                                    
-                                    return this.updateControlValueAttribute(realNode,this.ATTRIBUTE_CATEGORY_NAME,
-                                         this.ATTRIBUTE_NAME, controlPointValueModel.get());
-                                    
-                                })
-                                await Promise.all(promises)
+                            let controlPointValueModel = (await cp.element.load()).currentValue;
+
+                            //Pour tout les controlPointCommand sauf Temperature
+                            if(ep!="Command_Temperature"){
+                                //bind le controlPoint aux endpoint
+                                controlPointValueModel.bind(async () =>{
                                 
-
-                                // let promises = endpoints.map(x => {
-                                //     return this.updateControlEndpointWithAnalytic(x, controlPointValueModel.get(),
-                                //      InputDataEndpointDataType.Real, InputDataEndpointType.Other);
-                                // })
-                                // await Promise.all(promises)
-
+                                    //Avoir la liste des endPoints
+                                    let endpoints = endpointObject[ep];
+                                    if(endpoints.length!=0){
+                                        //copier le currentValue du controlPointCommand dans l'attribut controlValue de chaque endPoint associé
+                                        let promises = await endpoints.map(x => { 
+                                            let realNode = SpinalGraphService.getRealNode(x.id.get())
+                                            
+                                            return this.updateControlValueAttribute(realNode,this.ATTRIBUTE_CATEGORY_NAME,
+                                                this.ATTRIBUTE_NAME, controlPointValueModel.get());
+                                            
+                                        })
+                                        await Promise.all(promises)
+        
+                                    }
+                                },false);
+                            } 
+                            //Pour Temperature
+                            else{
+                                //bind le controlPoint aux endpoint
+                                controlPointValueModel.bind(async () =>{
+                                
+                                    //Avoir la liste des endPoints
+                                    let endpoints = endpointObject[ep];
+                                    if(endpoints.length!=0){
+                                        let value = controlPointValueModel.get();
+                                        //Calculer le offset à appliquer
+                                        let temperature_Offset = await controlCVC.getTemperatureOffset(roomBmsEndPoints,value);
+                                        if(temperature_Offset){
+                                            //copier le offset dans l'attribut controlValue de chaque endPoint associé
+                                            let promises = await endpoints.map(x => { 
+                                                let realNode = SpinalGraphService.getRealNode(x.id.get())
+                                                return this.updateControlValueAttribute(realNode,this.ATTRIBUTE_CATEGORY_NAME,
+                                                    this.ATTRIBUTE_NAME, temperature_Offset);
+                                                
+                                            })
+                                            await Promise.all(promises);
+                                        }
+                                    }
+                                },false);
                             }
-                        },false);
+                            
 
                     }   
                 }
             }
         }
     }
-
-
-    
-    // /**
-    //  * @param  {SpinalNodeRef} model
-    //  * @param  {any} valueToPush
-    //  * @param  {any} dataType
-    //  * @param  {any} type
-    //  * @returns Promise
-    //  */
-    // public async updateControlEndpointWithAnalytic(model:SpinalNodeRef, valueToPush:any, dataType:any, type:any): Promise<void>{
-    //     if(valueToPush != undefined) {
-    //         const input : InputDataEndpoint = {
-    //             id: "",
-    //             name: "",
-    //             path: "",
-    //             currentValue: valueToPush,
-    //             unit: "",
-    //             dataType: dataType,
-    //             type: type,
-    //             nodeTypeName: "BmsEndpoint"// should be SpinalBmsEndpoint.nodeTypeName || 'BmsEndpoint'
-    //         };
-    //         const time = new Date();   //Register in TimeSeries
-    //         const nodeId = model.id.get();
-    //         const realNode = SpinalGraphService.getRealNode(nodeId);
-    //         // await Promise.all([pilotage_utilities.sendUpdateRequest(nodeId, realNode,valueToPush), networkService.updateEndpoint(model,input,time)])
-    //         await networkService.updateEndpoint(model,input,time);
-
-    //         console.log(model.name.get() + " ==>  is updated ");
-    //     }
-    //     else{
-    //         console.log(valueToPush + " value to push in node : " + model.name.get() + " -- ABORTED !");
-    //     }
-    // }
 
 
 

@@ -67,12 +67,12 @@ class SpinalMain {
 
         let rooms = await utils.getMonitorableRoom(contextName,categoryName);
         for (let room of rooms){
-            let cp = await utils.getCommandControlPoint(room.id.get())
-            let ep = await utils.getRoomBmsEndpoints(room.id.get())
+            let cp = await utils.getCommandControlPoint(room.id.get());
+            let ep = await utils.getRoomBmsEndpoints(room.id.get());
             let group = await utils.getBmsEndpointGroup(ep);
 
-            console.log("\nRoom name ====> ",room.name.get())
-            await utils.bindControlpointToEndpoint(cp,group);
+            console.log("\nRoom name ====> ",room.name.get());
+            await utils.bindControlpointToEndpoint(cp,group,ep);
         }
         console.log("DONE");
     }

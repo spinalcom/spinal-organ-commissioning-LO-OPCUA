@@ -24,20 +24,28 @@
 
 
 
-// export const MONITORABLE_ROOM = Object.freeze({
-//     context: "Contexte de salle",
-//     category: "Espaces de réservation"
-// });
-
 export const MONITORABLE_ROOM = Object.freeze({
-    context: "Zones",
-    category: "Etage 1"
+    context: "Contexte de salle",
+    category: "Espaces de réservation"
 });
+
+
 export const ENDPOINT_GROUP_COMMANDE = ["Command_Light","Command_Blind","Command_Temperature"]
 
+export const HVAC_MODE_STATUS = Object.freeze({
+    1: "Auto",
+    2: "Heat",
+    3: "Mmg_Wmup",
+    4: "Cool",
+    5: "Night_Purge",
+    6: "Pre_Cool",
+    7: "Off"
+});
 
-// export const ENDPOINT_GROUP_COMMANDE = Object.freeze({
-//     Command_Light: [],
-//     Command_Blind: [],
-//     Command_Temperature: []
-// });
+
+export const HVAC_MODE_STATUS_NAME = "HVACModeStatus";
+
+export const OCC_MODE_SP = Object.freeze({
+    Heat : "OccHeatSP",
+    Cool : "OccCoolSP"
+});
