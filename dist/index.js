@@ -31,7 +31,7 @@ const constants = require("./constants");
 const utils = new utils_1.Utils();
 class SpinalMain {
     constructor() {
-        const url = `https://${config.userId}:${config.userPassword}@${config.hubHost}:${config.hubPort}/`;
+        const url = `${config.hubProtocol}://${config.userId}:${config.userPassword}@${config.hubHost}:${config.hubPort}/`;
         this.connect = spinal_core_connectorjs_type_1.spinalCore.connect(url);
     }
     /**

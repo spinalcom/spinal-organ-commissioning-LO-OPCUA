@@ -25,8 +25,8 @@
 
 
 export const MONITORABLE_ROOM = Object.freeze({
-    context: "Contexte de salle",
-    category: "Espaces de réservation"
+    context: "Contexte de Salles standardisé",
+    category: "Zone"
 });
 
 

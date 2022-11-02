@@ -32,6 +32,7 @@ if (!process.env.USER_ID) {
 module.exports = {
   userId: parseInt(process.env.USER_ID),
   userPassword: process.env.USER_PASSWORD,
+  hubProtocol : process.env.HUB_PROTOCOL,
   hubHost: process.env.HUB_HOST,
   hubPort: parseInt(process.env.HUB_PORT),
   digitalTwinPath: process.env.DIGITALTWIN_PATH,

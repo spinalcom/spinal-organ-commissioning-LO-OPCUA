@@ -34,7 +34,7 @@ const utils = new Utils();
 class SpinalMain {
     connect: spinal.FileSystem;
     constructor() { 
-        const url = `https://${config.userId}:${config.userPassword}@${config.hubHost}:${config.hubPort}/`;
+        const url = `${config.hubProtocol}://${config.userId}:${config.userPassword}@${config.hubHost}:${config.hubPort}/`;
         this.connect = spinalCore.connect(url)
     }
     

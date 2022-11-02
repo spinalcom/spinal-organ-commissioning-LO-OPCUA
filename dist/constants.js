@@ -25,8 +25,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OCC_MODE_SP = exports.HVAC_MODE_STATUS_NAME = exports.HVAC_MODE_STATUS = exports.ENDPOINT_GROUP_COMMANDE = exports.MONITORABLE_ROOM = void 0;
 exports.MONITORABLE_ROOM = Object.freeze({
-    context: "Contexte de salle",
-    category: "Espaces de réservation"
+    context: "Contexte de Salles standardisé",
+    category: "Zone"
 });
 exports.ENDPOINT_GROUP_COMMANDE = ["Command_Light", "Command_Blind", "Command_Temperature"];
 exports.HVAC_MODE_STATUS = Object.freeze({
