@@ -22,7 +22,7 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 
-import {SpinalGraphService, SpinalNodeRef} from "spinal-env-viewer-graph-service";
+import {SpinalGraphService, SpinalNode, SpinalNodeRef} from "spinal-env-viewer-graph-service";
 import {spinalCore,Process} from "spinal-core-connectorjs_type";
 import cron = require('node-cron');
 import * as config from "../config";
@@ -62,25 +62,48 @@ class SpinalMain {
      * The main function of the class
      */
     public async MainJob() {
-        const contextName = constants.MONITORABLE_ROOM.context;
-        const categoryName = constants.MONITORABLE_ROOM.category;
-
-        let rooms = await utils.getMonitorableRoom(contextName,categoryName);
-        for (let room of rooms){
-            let cp = await utils.getCommandControlPoint(room.id.get());
-            let ep = await utils.getRoomBmsEndpoints(room.id.get());
-            let group = await utils.getBmsEndpointGroup(ep);
-
-            console.log("\nRoom name ====> ",room.name.get());
-            await utils.bindControlpointToEndpoint(cp,group,ep);
-        }
-        console.log("DONE");
+       
+        await this.workingPositionsJob();
+      
     }
-   
+
+    public async workingPositionsJob(){
+
+        const contextName = constants.Positions.context;
+        const categoryName = constants.Positions.category;
+        const groupName = constants.Positions.groupe;
+        
+        console.log("before call");
+        let Positions = await utils.getPositions(contextName, categoryName, groupName);
+        
+        // Initialisation de PosList comme tableau vide
+        let PosList: Array<{
+            position: SpinalNodeRef;
+            CP: SpinalNodeRef | undefined;
+            PosINFO: Array<{
+                bmsgroup: SpinalNodeRef;
+                Netgroup: SpinalNodeRef;
+                endpoint: SpinalNodeRef;
+            }>;
+        }> = [];
+        
+        const promises = Positions.map(async (pos: SpinalNodeRef) => {
+            const CP = await utils.getCommandControlPoint(pos.id.get());
+            const PosINFO = await utils.getGroupsForPosition(pos.id.get());
+           
+            PosList.push({ position: pos, CP: CP, PosINFO: PosINFO });
+        });
+        
+        
+        await Promise.all(promises);
+        
+        await utils.BindPositionsToGrpDALI(PosList);
+        
+        console.log("DONE");
 }
 
 
-
+}
 
 
 
@@ -90,6 +113,7 @@ async function Main() {
         const spinalMain = new SpinalMain();
         await spinalMain.init();
         await spinalMain.MainJob();
+        //process.exit(0);
     } 
     catch (error) {
         console.error(error);

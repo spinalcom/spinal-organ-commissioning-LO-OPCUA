@@ -21,16 +21,6 @@
     "dotenv": "^16.0.1",
     "moment": "^2.29.3",
     "node-cron": "^3.0.1",
-    "spinal-core-connectorjs": "git+https://github.com/spinalcom/spinal-core-connectorjs.git",
-    "spinal-core-connectorjs_type": "git+https://github.com/spinalcom/spinal-core-connectorjs_type.git",
-    "spinal-env-viewer-graph-service": "git+https://github.com/spinalcom/Spinal-Graph-Service.git",
-    "spinal-env-viewer-plugin-documentation": "git+https://github.com/spinalcom/spinal-env-viewer-plugin-documentation.git",
-    "spinal-env-viewer-plugin-documentation-service": "git+https://github.com/spinalcom/spinal-env-viewer-plugin-documentation-service.git",
-    "spinal-env-viewer-plugin-excel-manager-service": "git+https://github.com/spinalcom/spinal-env-viewer-plugin-excel-manager-service.git",
-    "spinal-model-bacnet": "git+https://github.com/spinalcom/spinal-model-bacnet.git",
-    "spinal-model-bmsnetwork": "git+https://github.com/spinalcom/spinal-model-bmsnetwork.git",
-    "spinal-model-graph": "git+https://github.com/spinalcom/spinal-model-graph.git",
-    "spinal-model-timeseries": "git+https://github.com/spinalcom/spinal-model-timeseries.git",
     "typescript": "^4.4.4"
   },
   "devDependencies": {
@@ -39,5 +29,17 @@
   "bugs": {
     "url": "https://github.com/cherifi-93/spinal-organ-telecommande/issues"
   },
-  "homepage": "https://github.com/cherifi-93/spinal-organ-telecommande#readme"
+  "homepage": "https://github.com/cherifi-93/spinal-organ-telecommande#readme",
+  "spinalDependencies": {
+    "spinal-core-connectorjs": "spinal-core-connectorjs",
+    "spinal-core-connectorjs_type": "spinal-core-connectorjs_type",
+    "spinal-env-viewer-graph-service": "Spinal-Graph-Service",
+    "spinal-env-viewer-plugin-documentation": "spinal-env-viewer-plugin-documentation",
+    "spinal-env-viewer-plugin-documentation-service": "spinal-env-viewer-plugin-documentation-service",
+    "spinal-env-viewer-plugin-excel-manager-service": "spinal-env-viewer-plugin-excel-manager-service",
+    "spinal-model-bacnet": "spinal-model-bacnet",
+    "spinal-model-bmsnetwork": "spinal-model-bmsnetwork",
+    "spinal-model-graph": "spinal-model-graph",
+    "spinal-model-timeseries": "spinal-model-timeseries"
+  }
 }

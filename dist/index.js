@@ -55,16 +55,23 @@ class SpinalMain {
      * The main function of the class
      */
     async MainJob() {
-        const contextName = constants.MONITORABLE_ROOM.context;
-        const categoryName = constants.MONITORABLE_ROOM.category;
-        let rooms = await utils.getMonitorableRoom(contextName, categoryName);
-        for (let room of rooms) {
-            let cp = await utils.getCommandControlPoint(room.id.get());
-            let ep = await utils.getRoomBmsEndpoints(room.id.get());
-            let group = await utils.getBmsEndpointGroup(ep);
-            console.log("\nRoom name ====> ", room.name.get());
-            await utils.bindControlpointToEndpoint(cp, group, ep);
-        }
+        await this.workingPositionsJob();
+    }
+    async workingPositionsJob() {
+        const contextName = constants.Positions.context;
+        const categoryName = constants.Positions.category;
+        const groupName = constants.Positions.groupe;
+        console.log("before call");
+        let Positions = await utils.getPositions(contextName, categoryName, groupName);
+        // Initialisation de PosList comme tableau vide
+        let PosList = [];
+        const promises = Positions.map(async (pos) => {
+            const CP = await utils.getCommandControlPoint(pos.id.get());
+            const PosINFO = await utils.getGroupsForPosition(pos.id.get());
+            PosList.push({ position: pos, CP: CP, PosINFO: PosINFO });
+        });
+        await Promise.all(promises);
+        await utils.BindPositionsToGrpDALI(PosList);
         console.log("DONE");
     }
 }
@@ -74,6 +81,7 @@ async function Main() {
         const spinalMain = new SpinalMain();
         await spinalMain.init();
         await spinalMain.MainJob();
+        //process.exit(0);
     }
     catch (error) {
         console.error(error);
