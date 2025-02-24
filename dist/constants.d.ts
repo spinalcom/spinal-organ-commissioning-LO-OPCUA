@@ -1,6 +1,7 @@
 export declare const Positions: Readonly<{
-    context: "Gestion des équipements";
-    category: "Typologie";
-    groupe: "Positions de travail";
+    context: "Synchronisation équipements GMAO";
+    category: "Mobilier";
+    groupe: "Position de travail";
 }>;
-export declare const ENDPOINT_GROUP_COMMANDE: string[];
+export declare const LightControlPoint = "COMMAND_LIGHT";
+export declare const StoreControlPoint = "COMMAND_BLIND";

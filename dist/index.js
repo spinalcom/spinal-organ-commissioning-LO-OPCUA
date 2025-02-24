@@ -31,6 +31,7 @@ const constants = require("./constants");
 const utils = new utils_1.Utils();
 class SpinalMain {
     constructor() {
+        this.CP_to_PositionsToData = new Map();
         const url = `${config.hubProtocol}://${config.userId}:${config.userPassword}@${config.hubHost}:${config.hubPort}/`;
         this.connect = spinal_core_connectorjs_type_1.spinalCore.connect(url);
     }
@@ -55,24 +56,43 @@ class SpinalMain {
      * The main function of the class
      */
     async MainJob() {
-        await this.workingPositionsJob();
-    }
-    async workingPositionsJob() {
         const contextName = constants.Positions.context;
         const categoryName = constants.Positions.category;
         const groupName = constants.Positions.groupe;
-        console.log("before call");
+        this.LightControl(contextName, categoryName, groupName);
+        this.StoresControl(contextName, categoryName, groupName);
+    }
+    async getPositionDataLight(position) {
+        const CP = await utils.getCommandControlPoint(position.id.get(), constants.LightControlPoint);
+        const PosINFO = await utils.getGroupsForPosition(position.id.get());
+        return { position, CP, PosINFO };
+    }
+    async getPositionDataStore(position) {
+        const CP = await utils.getCommandControlPoint(position.id.get(), constants.StoreControlPoint);
+        const storeINFO = await utils.getStoreForPosition(position.id.get());
+        return { position, CP, storeINFO };
+    }
+    async LightControl(contextName, categoryName, groupName) {
         let Positions = await utils.getPositions(contextName, categoryName, groupName);
-        // Initialisation de PosList comme tableau vide
-        let PosList = [];
         const promises = Positions.map(async (pos) => {
-            const CP = await utils.getCommandControlPoint(pos.id.get());
-            const PosINFO = await utils.getGroupsForPosition(pos.id.get());
-            PosList.push({ position: pos, CP: CP, PosINFO: PosINFO });
+            const posData = await this.getPositionDataLight(pos);
+            this.CP_to_PositionsToData.set(posData.CP.id.get(), posData);
+            return posData;
         });
-        await Promise.all(promises);
+        const PosList = await Promise.all(promises);
         await utils.BindPositionsToGrpDALI(PosList);
-        console.log("DONE");
+        console.log("done binding light control");
+    }
+    async StoresControl(contextName, categoryName, groupName) {
+        let Positions = await utils.getPositions(contextName, categoryName, groupName);
+        const promeses2 = Positions.map(async (pos) => {
+            const PosStoreData = this.getPositionDataStore(pos);
+            return PosStoreData;
+        });
+        const storeList = await Promise.all(promeses2);
+        await utils.BindStoresControlPoint(storeList);
+        console.log("done binding store control");
+        console.log("debug test");
     }
 }
 async function Main() {

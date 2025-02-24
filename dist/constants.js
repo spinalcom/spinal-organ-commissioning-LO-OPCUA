@@ -23,11 +23,12 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ENDPOINT_GROUP_COMMANDE = exports.Positions = void 0;
+exports.StoreControlPoint = exports.LightControlPoint = exports.Positions = void 0;
 exports.Positions = Object.freeze({
-    context: "Gestion des équipements",
-    category: "Typologie",
-    groupe: "Positions de travail"
+    context: "Synchronisation équipements GMAO",
+    category: "Mobilier",
+    groupe: "Position de travail"
 });
-exports.ENDPOINT_GROUP_COMMANDE = ["Command_Light"];
+exports.LightControlPoint = "COMMAND_LIGHT";
+exports.StoreControlPoint = "COMMAND_BLIND";
 //# sourceMappingURL=constants.js.map

@@ -25,13 +25,14 @@
 
 
 export const Positions = Object.freeze({
-    context: "Gestion des équipements",
-    category: "Typologie",
-    groupe:"Positions de travail"
+    context: "Synchronisation équipements GMAO",
+    category: "Mobilier",
+    groupe:"Position de travail"
 });
 
 
-export const ENDPOINT_GROUP_COMMANDE = ["Command_Light"]
+export const LightControlPoint = "COMMAND_LIGHT"
+export const StoreControlPoint = "COMMAND_BLIND"
 
 
 
