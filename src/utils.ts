@@ -29,7 +29,7 @@ import * as constants from "./constants"
 import { NetworkService, InputDataEndpoint, InputDataEndpointDataType, InputDataEndpointType } from "spinal-model-bmsnetwork"
 import { SpinalAttribute } from "spinal-models-documentation/declarations";
 import { attributeService, ICategory } from "spinal-env-viewer-plugin-documentation-service";
-import { PosInfo, PositionData,PositionsDataStore } from "./types";
+import { PosInfo, PositionData,PositionsDataStore,PositionTempData } from "./types";
 
 export const networkService = new NetworkService()
 
@@ -438,6 +438,57 @@ export class Utils {
         }
     }
 
+    public async getTempEndpoint(positionID: string): Promise<SpinalNodeRef | undefined> {
+       
+        const PosParents = await SpinalGraphService.getParents(positionID, ["hasNetworkTreeBimObject"]);
+        if(PosParents.length === 0) return undefined;
+        
+        const zoneTemp = PosParents.find((parent) => parent.subtype?.get() === "zone_temperature");
+        if(zoneTemp==undefined) return undefined;
+        
+        const zonefilter= (zoneTemp.name.get()).split("-")[1];
+        const automate= await SpinalGraphService.getParents(zoneTemp.id.get(), ["hasNetworkTreeGroup"]);
+        if(automate.length === 0) return undefined;
+        
+        const bmsAutomate = await SpinalGraphService.getChildren(automate[0].id.get(), ["hasBmsDevice"])
+        if(bmsAutomate.length === 0) return undefined;
+        
+        const bmsendpointGroup = await SpinalGraphService.getChildren(bmsAutomate[0].id.get(), ["hasBmsEndpointGroup"])
+        if(bmsendpointGroup.length === 0) return undefined;
+        const analog_values= bmsendpointGroup.find((child) => child.name.get() === "analog_value");
 
+        if(analog_values === undefined) return undefined;
+        
+        const bmsendpoints = await SpinalGraphService.getChildren(analog_values.id.get(), ["hasBmsEndpoint"])
+        if(bmsendpoints.length === 0) return undefined;
+        
+        const endpoint = bmsendpoints.find((child) => (child.name.get()).includes("X3") && (child.name.get()).includes(zonefilter));
+        if(endpoint === undefined) return undefined;
+
+        return (endpoint);
+        
+    }
+    public async BindTempControlPoint(TempDataList: PositionTempData[]) {
+       
+        for (const item of TempDataList) {
+            const { position, CP: controlPoint, TempEndpoint } = item;
+
+            
+            if (controlPoint != undefined && TempEndpoint!= undefined) {
+                console.log("Binding Temperature control point:", controlPoint.name.get(), "for position", position.name.get());
+
+                let CPmodifDate = controlPoint.directModificationDate;
+                console.log("DirectModificationDate for", controlPoint.name.get(), ":", CPmodifDate.get(), [ CPmodifDate._server_id ]);
+                // Surveiller les modifications pour ce controlPoint
+                CPmodifDate.bind(async () => {
+                    console.log("Control Point modified:", controlPoint.name.get());
+                    const endpValue = (await controlPoint.element.load()).currentValue.get();
+                    await this.updateEndpointValue(TempEndpoint, endpValue); 
+                }, false);                  
+            }
+        }
+    }
+                
+    
 
 }

@@ -22,3 +22,8 @@ export type PosInfoStore={
     Motstore: SpinalNodeRef;
     endpoint: SpinalNodeRef;
 }
+export type PositionTempData={
+    position: SpinalNodeRef;
+    CP : SpinalNodeRef | undefined;
+    TempEndpoint: SpinalNodeRef;
+}

@@ -28,7 +28,7 @@ import cron = require('node-cron');
 import * as config from "../config";
 import {Utils} from "./utils"
 import * as constants from "./constants"
-import { PositionData,PositionsDataStore } from "./types";
+import { PositionData,PositionsDataStore,PositionTempData } from "./types";
 const utils = new Utils();
 
 
@@ -73,6 +73,8 @@ class SpinalMain {
 
         this.LightControl(contextName, categoryName, groupName);
         this.StoresControl(contextName, categoryName, groupName);
+        this.TempControl(contextName, categoryName, groupName);
+       
     }
 
     public async getPositionDataLight(position: SpinalNodeRef): Promise<PositionData> {
@@ -85,6 +87,13 @@ class SpinalMain {
         const storeINFO = await utils.getStoreForPosition(position.id.get());
         return { position, CP, storeINFO};
     }
+    
+    public async getPositionTempData(position: SpinalNodeRef):Promise<PositionTempData>{
+        const CP = await utils.getCommandControlPoint(position.id.get(), constants.HeatControlPoint);
+        const TempEndpoint = await utils.getTempEndpoint(position.id.get())
+        return {position,CP,TempEndpoint}
+    }
+   
     public async LightControl(contextName: string, categoryName: string, groupName: string) {
         
         let Positions = await utils.getPositions(contextName, categoryName, groupName); 
@@ -112,7 +121,18 @@ public async StoresControl(contextName: string, categoryName: string, groupName:
    console.log("done binding store control");
    
 }
-
+public async TempControl(contextName: string, categoryName: string, groupName: string) {
+        
+    let Positions = await utils.getPositions(contextName, categoryName, groupName); 
+    const promeses3= Positions.map(async (pos: SpinalNodeRef) => {
+        const PosTempData = this.getPositionTempData(pos);
+        return PosTempData;});
+    const TempDataList = await Promise.all(promeses3);
+    await utils.BindTempControlPoint(TempDataList);
+    console.log("done binding temp control");
+   
+     
+}
 }
 
 async function Main() {

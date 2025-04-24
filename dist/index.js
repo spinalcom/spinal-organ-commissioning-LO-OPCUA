@@ -61,6 +61,7 @@ class SpinalMain {
         const groupName = constants.Positions.groupe;
         this.LightControl(contextName, categoryName, groupName);
         this.StoresControl(contextName, categoryName, groupName);
+        this.TempControl(contextName, categoryName, groupName);
     }
     async getPositionDataLight(position) {
         const CP = await utils.getCommandControlPoint(position.id.get(), constants.LightControlPoint);
@@ -71,6 +72,11 @@ class SpinalMain {
         const CP = await utils.getCommandControlPoint(position.id.get(), constants.StoreControlPoint);
         const storeINFO = await utils.getStoreForPosition(position.id.get());
         return { position, CP, storeINFO };
+    }
+    async getPositionTempData(position) {
+        const CP = await utils.getCommandControlPoint(position.id.get(), constants.HeatControlPoint);
+        const TempEndpoint = await utils.getTempEndpoint(position.id.get());
+        return { position, CP, TempEndpoint };
     }
     async LightControl(contextName, categoryName, groupName) {
         let Positions = await utils.getPositions(contextName, categoryName, groupName);
@@ -92,7 +98,16 @@ class SpinalMain {
         const storeList = await Promise.all(promeses2);
         await utils.BindStoresControlPoint(storeList);
         console.log("done binding store control");
-        console.log("debug test");
+    }
+    async TempControl(contextName, categoryName, groupName) {
+        let Positions = await utils.getPositions(contextName, categoryName, groupName);
+        const promeses3 = Positions.map(async (pos) => {
+            const PosTempData = this.getPositionTempData(pos);
+            return PosTempData;
+        });
+        const TempDataList = await Promise.all(promeses3);
+        await utils.BindTempControlPoint(TempDataList);
+        console.log("done binding temp control");
     }
 }
 async function Main() {
