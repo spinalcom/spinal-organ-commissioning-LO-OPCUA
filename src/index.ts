@@ -71,9 +71,10 @@ class SpinalMain {
         const categoryName = constants.Positions.category;
         const groupName = constants.Positions.groupe;
 
-        this.LightControl(contextName, categoryName, groupName);
-        this.StoresControl(contextName, categoryName, groupName);
-        this.TempControl(contextName, categoryName, groupName);
+        const Positions = await utils.getPositions(contextName, categoryName, groupName); 
+        this.LightControl(Positions);
+        this.StoresControl(Positions);
+        this.TempControl(Positions);
        
     }
 
@@ -94,9 +95,9 @@ class SpinalMain {
         return {position,CP,TempEndpoint}
     }
    
-    public async LightControl(contextName: string, categoryName: string, groupName: string) {
+    public async LightControl(Positions: SpinalNodeRef[]) {
         
-        let Positions = await utils.getPositions(contextName, categoryName, groupName); 
+        
         const promises = Positions.map(async (pos: SpinalNodeRef) => {
             const posData = await this.getPositionDataLight(pos);
             this.CP_to_PositionsToData.set(posData.CP.id.get(), posData);
@@ -108,9 +109,9 @@ class SpinalMain {
         console.log("done binding light control"); 
 }
 
-public async StoresControl(contextName: string, categoryName: string, groupName: string) {
+public async StoresControl(Positions: SpinalNodeRef[]) {
         
-    let Positions = await utils.getPositions(contextName, categoryName, groupName); 
+    
     const promeses2 = Positions.map(async (pos: SpinalNodeRef) => {
         const PosStoreData = this.getPositionDataStore(pos);
         return PosStoreData;});
@@ -121,9 +122,9 @@ public async StoresControl(contextName: string, categoryName: string, groupName:
    console.log("done binding store control");
    
 }
-public async TempControl(contextName: string, categoryName: string, groupName: string) {
+public async TempControl(Positions: SpinalNodeRef[]) {
         
-    let Positions = await utils.getPositions(contextName, categoryName, groupName); 
+    
     const promeses3= Positions.map(async (pos: SpinalNodeRef) => {
         const PosTempData = this.getPositionTempData(pos);
         return PosTempData;});

@@ -59,9 +59,10 @@ class SpinalMain {
         const contextName = constants.Positions.context;
         const categoryName = constants.Positions.category;
         const groupName = constants.Positions.groupe;
-        this.LightControl(contextName, categoryName, groupName);
-        this.StoresControl(contextName, categoryName, groupName);
-        this.TempControl(contextName, categoryName, groupName);
+        const Positions = await utils.getPositions(contextName, categoryName, groupName);
+        this.LightControl(Positions);
+        this.StoresControl(Positions);
+        this.TempControl(Positions);
     }
     async getPositionDataLight(position) {
         const CP = await utils.getCommandControlPoint(position.id.get(), constants.LightControlPoint);
@@ -78,8 +79,7 @@ class SpinalMain {
         const TempEndpoint = await utils.getTempEndpoint(position.id.get());
         return { position, CP, TempEndpoint };
     }
-    async LightControl(contextName, categoryName, groupName) {
-        let Positions = await utils.getPositions(contextName, categoryName, groupName);
+    async LightControl(Positions) {
         const promises = Positions.map(async (pos) => {
             const posData = await this.getPositionDataLight(pos);
             this.CP_to_PositionsToData.set(posData.CP.id.get(), posData);
@@ -89,8 +89,7 @@ class SpinalMain {
         await utils.BindPositionsToGrpDALI(PosList);
         console.log("done binding light control");
     }
-    async StoresControl(contextName, categoryName, groupName) {
-        let Positions = await utils.getPositions(contextName, categoryName, groupName);
+    async StoresControl(Positions) {
         const promeses2 = Positions.map(async (pos) => {
             const PosStoreData = this.getPositionDataStore(pos);
             return PosStoreData;
@@ -99,8 +98,7 @@ class SpinalMain {
         await utils.BindStoresControlPoint(storeList);
         console.log("done binding store control");
     }
-    async TempControl(contextName, categoryName, groupName) {
-        let Positions = await utils.getPositions(contextName, categoryName, groupName);
+    async TempControl(Positions) {
         const promeses3 = Positions.map(async (pos) => {
             const PosTempData = this.getPositionTempData(pos);
             return PosTempData;
