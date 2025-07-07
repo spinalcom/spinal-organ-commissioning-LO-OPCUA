@@ -328,7 +328,6 @@ class Utils {
                 // Surveiller les modifications pour ce controlPoint
                 CPmodifDate.bind(async () => {
                     console.log("Control Point modified:", controlPoint.name.get());
-                    // Parcourir tous les objets de PosINFO (en cas de plusieurs groupes pour une position)
                     await this.bindControlPointCallBack(item);
                 }, false);
             }
@@ -366,6 +365,50 @@ class Utils {
             if (zone) {
                 console.log("Position", position.name.get(), "has zone", zone.name.get());
                 await this.checkAndUpdateMode(zone, posinfo, controlPoint);
+            }
+        }
+    }
+    async getTempEndpoint(positionID) {
+        const PosParents = await spinal_env_viewer_graph_service_1.SpinalGraphService.getParents(positionID, ["hasNetworkTreeBimObject"]);
+        if (PosParents.length === 0)
+            return undefined;
+        const zoneTemp = PosParents.find((parent) => { var _a; return ((_a = parent.subtype) === null || _a === void 0 ? void 0 : _a.get()) === "zone_temperature"; });
+        if (zoneTemp == undefined)
+            return undefined;
+        const zonefilter = (zoneTemp.name.get()).split("-")[1];
+        const automate = await spinal_env_viewer_graph_service_1.SpinalGraphService.getParents(zoneTemp.id.get(), ["hasNetworkTreeGroup"]);
+        if (automate.length === 0)
+            return undefined;
+        const bmsAutomate = await spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(automate[0].id.get(), ["hasBmsDevice"]);
+        if (bmsAutomate.length === 0)
+            return undefined;
+        const bmsendpointGroup = await spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(bmsAutomate[0].id.get(), ["hasBmsEndpointGroup"]);
+        if (bmsendpointGroup.length === 0)
+            return undefined;
+        const analog_values = bmsendpointGroup.find((child) => child.name.get() === "analog_value");
+        if (analog_values === undefined)
+            return undefined;
+        const bmsendpoints = await spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(analog_values.id.get(), ["hasBmsEndpoint"]);
+        if (bmsendpoints.length === 0)
+            return undefined;
+        const endpoint = bmsendpoints.find((child) => (child.name.get()).includes("X3") && (child.name.get()).includes(zonefilter));
+        if (endpoint === undefined)
+            return undefined;
+        return (endpoint);
+    }
+    async BindTempControlPoint(TempDataList) {
+        for (const item of TempDataList) {
+            const { position, CP: controlPoint, TempEndpoint } = item;
+            if (controlPoint != undefined && TempEndpoint != undefined) {
+                console.log("Binding Temperature control point:", controlPoint.name.get(), "for position", position.name.get());
+                let CPmodifDate = controlPoint.directModificationDate;
+                console.log("DirectModificationDate for", controlPoint.name.get(), ":", CPmodifDate.get(), [CPmodifDate._server_id]);
+                // Surveiller les modifications pour ce controlPoint
+                CPmodifDate.bind(async () => {
+                    console.log("Control Point modified:", controlPoint.name.get());
+                    const endpValue = (await controlPoint.element.load()).currentValue.get();
+                    await this.updateEndpointValue(TempEndpoint, endpValue);
+                }, false);
             }
         }
     }

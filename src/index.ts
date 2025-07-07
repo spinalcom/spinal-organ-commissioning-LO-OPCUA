@@ -128,15 +128,12 @@ public async StoresControl(Positions: SpinalNodeRef[]) {
    
 }
 public async TempControl(Positions: SpinalNodeRef[]) {
-        const TempDataList = []
-    for (const pos of Positions) {
-        const posData = await this.getPositionTempData(pos);
-        TempDataList.push(posData);
-    }    
-    // const promeses3= Positions.map(async (pos: SpinalNodeRef) => {
-    //     const PosTempData = this.getPositionTempData(pos);
-    //     return PosTempData;});
-    // const TempDataList = await Promise.all(promeses3);
+        
+    
+    const promeses3= Positions.map(async (pos: SpinalNodeRef) => {
+        const PosTempData = this.getPositionTempData(pos);
+        return PosTempData;});
+    const TempDataList = await Promise.all(promeses3);
     await utils.BindTempControlPoint(TempDataList);
     console.log("done binding temp control");
    

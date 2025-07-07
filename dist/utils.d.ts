@@ -3,7 +3,7 @@ import { SpinalNode } from "spinal-model-graph";
 import { NetworkService } from "spinal-model-bmsnetwork";
 import { SpinalAttribute } from "spinal-models-documentation/declarations";
 import { ICategory } from "spinal-env-viewer-plugin-documentation-service";
-import { PositionData, PositionsDataStore } from "./types";
+import { PositionData, PositionsDataStore, PositionTempData } from "./types";
 export declare const networkService: NetworkService;
 /**
  * @export
@@ -59,4 +59,6 @@ export declare class Utils {
     updateEndpointValue(endpoint: SpinalNodeRef, valueToPush: string): Promise<void>;
     BindStoresControlPoint(posList: PositionsDataStore[]): Promise<void>;
     private bindControlPointCallBack;
+    getTempEndpoint(positionID: string): Promise<SpinalNodeRef | undefined>;
+    BindTempControlPoint(TempDataList: PositionTempData[]): Promise<void>;
 }
