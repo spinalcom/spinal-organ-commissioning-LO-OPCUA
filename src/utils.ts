@@ -29,8 +29,8 @@ import * as constants from "./constants"
 import { NetworkService, InputDataEndpoint, InputDataEndpointDataType, InputDataEndpointType } from "spinal-model-bmsnetwork"
 import { SpinalAttribute } from "spinal-models-documentation/declarations";
 import { attributeService, ICategory } from "spinal-env-viewer-plugin-documentation-service";
-import { PosInfo, PositionData,PositionsDataStore } from "./types";
-
+import { PosInfo, PositionData, PositionsDataStore, PositionTempData } from "./types";
+import { ProcessBind } from "./processBind";
 export const networkService = new NetworkService()
 
 
@@ -40,12 +40,12 @@ export const networkService = new NetworkService()
  * @class Utils
  */
 export class Utils {
-
+    processBind: ProcessBind = new ProcessBind();
     ATTRIBUTE_NAME = "controlValue";
     INIT_ZONE_MODE = "initZoneMode";
     ATTRIBUTE_CATEGORY_NAME = "default";
     DEFAULT_COMMAND_VALUE = "null";
-    store_filter="SRG_ELE_Moteur store";
+    store_filter = "SRG_ELE_Moteur store";
 
 
     /**
@@ -103,7 +103,7 @@ export class Utils {
         }
     }
 
-    public async getCommandControlPoint(workpositionId: string,controlPointName:String): Promise<SpinalNodeRef | undefined> {
+    public async getCommandControlPoint(workpositionId: string, controlPointName: String): Promise<SpinalNodeRef | undefined> {
         const NODE_TO_CONTROL_POINTS_RELATION = "hasControlPoints";
         const CONTROL_POINTS_TO_BMS_ENDPOINT_RELATION = "hasBmsEndpoint";
 
@@ -249,20 +249,32 @@ export class Utils {
         //}
     }
 
-    private _waitModeChange(value : spinal.Model) {
+    private _waitModeChange(value: spinal.Model) {
         return new Promise((resolve, reject) => {
-            const bindProcess = value.bind(() => {
-                if(value.get() == 1){
-                    value.unbind(bindProcess);
-                    resolve(value);
-                    return;
-                } else if(value.get() == -1) {
-                    value.unbind(bindProcess);
-                    reject("opcua request failed");
-                    return; 
+            this.processBind.addBind(value,
+                () => {
+                    if (value.get() == 1) {
+                        this.processBind.unbind(value);
+                        resolve(value);
+                        return;
+                    } else if (value.get() == -1) {
+                        this.processBind.unbind(value);
+                        reject("opcua request failed");
+                        return;
+                    }
                 }
-            });
-            
+            )
+            // const bindProcess = value.bind(() => {
+            //     if (value.get() == 1) {
+            //         value.unbind(bindProcess);
+            //         resolve(value);
+            //         return;
+            //     } else if (value.get() == -1) {
+            //         value.unbind(bindProcess);
+            //         reject("opcua request failed");
+            //         return;
+            //     }
+            // });
         });
     }
 
@@ -270,17 +282,17 @@ export class Utils {
         try {
             const attribute = await this.changezoneMode(zone);
             await this._waitModeChange(attribute.value);
-            
+
             // Mettre à jour la valeur du groupe
             const valueToPush = (await controlPoint.element.load()).currentValue.get();
             await this.updateGrpValue(posinfo.bmsgroup, valueToPush, posinfo.endpoint);
         } catch (error) {
             console.error("error in checkAndUpdateMode", error);
-            
+
         }
 
 
-       
+
 
         //////////////////////////////////////////////////////////////////////////////////////////
         // // Vérifier la valeur du mode de fonctionnement
@@ -303,7 +315,7 @@ export class Utils {
         * @param  {any} valueToPush
         * @returns Promise
         */
-    public async updateControlValueAttribute(endpointNode: SpinalNode, attributeCategoryName: string | ICategory, attributeName: string, valueToPush: any): Promise<SpinalAttribute | undefined> {
+    public async updateControlValueAttribute(endpointNode: SpinalNode<any>, attributeCategoryName: string | ICategory, attributeName: string, valueToPush: any): Promise<SpinalAttribute | undefined> {
         const attribute = await this._getEndpointControlValue(endpointNode, attributeCategoryName, attributeName)
         if (attribute) {
             attribute.value.set(valueToPush);
@@ -322,7 +334,7 @@ export class Utils {
         * @param  {SpinalNode} endpointNode
         * @returns Promise
         */
-    public async _getEndpointControlValue(endpointNode: SpinalNode, attributeCategoryName: string | ICategory, attributeName: string): Promise<SpinalAttribute> {
+    public async _getEndpointControlValue(endpointNode: SpinalNode<any>, attributeCategoryName: string | ICategory, attributeName: string): Promise<SpinalAttribute> {
         const attribute = await attributeService.findOneAttributeInCategory(endpointNode, attributeCategoryName, attributeName)
         if (attribute != -1) return attribute;
 
@@ -334,7 +346,7 @@ export class Utils {
         const grpNode = SpinalGraphService.getRealNode(bmsgrpDALI.id.get());
         const endpointNode = SpinalGraphService.getRealNode(valueEndpoint.id.get());
         //update controlValue attribute for the group
-        
+
         await this.updateControlValueAttribute(grpNode, this.ATTRIBUTE_CATEGORY_NAME, this.ATTRIBUTE_NAME, valueToPush);
         grpNode.info.directModificationDate.set(Date.now());
 
@@ -375,21 +387,24 @@ export class Utils {
 
     public async BindPositionsToGrpDALI(posList: PositionData[]) {
         for (const item of posList) {
-            const { position, CP: controlPoint, PosINFO } = item;
+            const { CP: controlPoint, PosINFO } = item;
 
             // Vérifier si controlPoint et PosINFO sont valides
             if (controlPoint != undefined && PosINFO.length > 0) {
-                console.log("Binding control point:", controlPoint.name.get(), "for position", position.name.get());
+                //console.log("Binding control point:", controlPoint.name.get(), "for position", position.name.get());
 
                 let CPmodifDate = controlPoint.directModificationDate;
-                console.log("DirectModificationDate for", controlPoint.name.get(), ":", CPmodifDate.get(), [ CPmodifDate._server_id ]);
+                //console.log("DirectModificationDate for", controlPoint.name.get(), ":", CPmodifDate.get(), [CPmodifDate._server_id]);
 
 
                 // Surveiller les modifications pour ce controlPoint
-                CPmodifDate.bind(async () => {
-                    console.log("Control Point modified:", controlPoint.name.get());
-                    await this.bindControlPointCallBack(item);                    
-                }, false);
+                this.processBind.addBind(CPmodifDate,
+                    // CPmodifDate.bind(async () => {
+                    async () => {
+                        console.log("Control Point modified:", controlPoint.name.get());
+                        await this.bindControlPointCallBack(item);
+                    })
+                // }, false);
             }
         }
     }
@@ -400,32 +415,34 @@ export class Utils {
         await this.updateControlValueAttribute(endpointNode, this.ATTRIBUTE_CATEGORY_NAME, this.ATTRIBUTE_NAME, valueToPush);
         endpointNode.info.directModificationDate.set(Date.now());
     }
-    
+
     public async BindStoresControlPoint(posList: PositionsDataStore[]) {
-       
+
         for (const item of posList) {
             const { position, CP: controlPoint, storeINFO } = item;
 
             // Vérifier si controlPoint et PosINFO sont valides
             if (controlPoint != undefined && storeINFO.length > 0) {
-                console.log("Binding control point:", controlPoint.name.get(), "for position", position.name.get());
+                //console.log("Binding control point:", controlPoint.name.get(), "for position", position.name.get());
 
                 let CPmodifDate = controlPoint.directModificationDate;
-                console.log("DirectModificationDate for", controlPoint.name.get(), ":", CPmodifDate.get(), [ CPmodifDate._server_id ]);
+                //console.log("DirectModificationDate for", controlPoint.name.get(), ":", CPmodifDate.get(), [CPmodifDate._server_id]);
                 // Surveiller les modifications pour ce controlPoint
-                CPmodifDate.bind(async () => {
+                // CPmodifDate.bind(async () => {
+                this.processBind.addBind(CPmodifDate, async () => {
                     console.log("Control Point modified:", controlPoint.name.get());
                     for (const info of storeINFO) {
-                    const endpValue = (await controlPoint.element.load()).currentValue.get();
-                    await this.updateEndpointValue(info.endpoint, endpValue); 
-                    }                   
-                }, false);
+                        const endpValue = (await controlPoint.element.load()).currentValue.get();
+                        await this.updateEndpointValue(info.endpoint, endpValue);
+                    }
+                });
+                // }, false);
             }
         }
-                
+
     }
 
-    private async bindControlPointCallBack(PositionData: PositionData ) {
+    private async bindControlPointCallBack(PositionData: PositionData) {
         const { position, CP: controlPoint, PosINFO } = PositionData;
 
         for (const posinfo of PosINFO) {
@@ -434,6 +451,65 @@ export class Utils {
                 console.log("Position", position.name.get(), "has zone", zone.name.get());
 
                 await this.checkAndUpdateMode(zone, posinfo, controlPoint);
+            }
+        }
+    }
+
+    public async getTempEndpoint(positionID: string): Promise<SpinalNodeRef | undefined> {
+        try {
+            const PosParents = await SpinalGraphService.getParents(positionID, ["hasNetworkTreeBimObject"]);
+            if (PosParents.length === 0) return undefined;
+
+            const zoneTemp = PosParents.find((parent) => parent.subtype?.get() === "zone_temperature");
+            if (zoneTemp == undefined) return undefined;
+
+            const zonefilter = (zoneTemp.name.get()).split("-")[1];
+            const automate = await SpinalGraphService.getParents(zoneTemp.id.get(), ["hasNetworkTreeGroup"]);
+            if (automate.length === 0) return undefined;
+
+            const bmsAutomate = await SpinalGraphService.getChildren(automate[0].id.get(), ["hasBmsDevice"])
+            if (bmsAutomate.length === 0) return undefined;
+
+            const bmsendpointGroup = await SpinalGraphService.getChildren(bmsAutomate[0].id.get(), ["hasBmsEndpointGroup"])
+            if (bmsendpointGroup.length === 0) return undefined;
+            const analog_values = bmsendpointGroup.find((child) => child.name.get() === "analog_value");
+
+            if (analog_values === undefined) return undefined;
+
+            const bmsendpoints = await SpinalGraphService.getChildren(analog_values.id.get(), ["hasBmsEndpoint"])
+            if (bmsendpoints.length === 0) return undefined;
+
+            const endpoint = bmsendpoints.find((child) => (child.name.get()).includes("X3") && (child.name.get()).includes(zonefilter));
+            if (endpoint === undefined) return undefined;
+
+            return (endpoint);
+
+        } catch (error) {
+            const realposition = SpinalGraphService.getRealNode(positionID);
+            console.log(realposition._server_id, "getTempEndpoint ERROR for position", realposition.info.name.get());
+
+        }
+
+    }
+    public async BindTempControlPoint(TempDataList: PositionTempData[]) {
+
+        for (const item of TempDataList) {
+            const { position, CP: controlPoint, TempEndpoint } = item;
+
+
+            if (controlPoint != undefined && TempEndpoint != undefined) {
+                // console.log("Binding Temperature control point:", controlPoint.name.get(), "for position", position.name.get());
+
+                let CPmodifDate = controlPoint.directModificationDate;
+                // console.log("DirectModificationDate for", controlPoint.name.get(), ":", CPmodifDate.get(), [CPmodifDate._server_id]);
+                // Surveiller les modifications pour ce controlPoint
+                // CPmodifDate.bind(async () => {
+                this.processBind.addBind(CPmodifDate, async () => {
+                    console.log("Control Point modified:", controlPoint.name.get());
+                    const endpValue = (await controlPoint.element.load()).currentValue.get();
+                    await this.updateEndpointValue(TempEndpoint, endpValue);
+                });
+                // }, false);
             }
         }
     }

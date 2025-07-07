@@ -23,12 +23,12 @@
  */
 
 import {SpinalGraphService, SpinalNode, SpinalNodeRef} from "spinal-env-viewer-graph-service";
-import {spinalCore,Process} from "spinal-core-connectorjs_type";
+import {spinalCore,FileSystem} from "spinal-core-connectorjs_type";
 import cron = require('node-cron');
 import * as config from "../config";
 import {Utils} from "./utils"
 import * as constants from "./constants"
-import { PositionData,PositionsDataStore } from "./types";
+import { PositionData,PositionsDataStore,PositionTempData } from "./types";
 const utils = new Utils();
 
 
@@ -51,6 +51,8 @@ class SpinalMain {
      */
     public init() {
         return new Promise((resolve, reject) => {
+        
+
             spinalCore.load(this.connect, config.digitalTwinPath, async (graph: any) => {
                 await SpinalGraphService.setGraph(graph);
                 console.log("Connected to the hub");
@@ -71,8 +73,13 @@ class SpinalMain {
         const categoryName = constants.Positions.category;
         const groupName = constants.Positions.groupe;
 
-        this.LightControl(contextName, categoryName, groupName);
-        this.StoresControl(contextName, categoryName, groupName);
+        const Positions = await utils.getPositions(contextName, categoryName, groupName); 
+        //const testList = Positions.filter(e=>e.id.get()==="66e9-66f1-570a-193e4d8a654")
+        //console.log("test", testList[0].name.get());
+        this.LightControl(Positions);
+        this.StoresControl(Positions);
+        this.TempControl(Positions);
+       
     }
 
     public async getPositionDataLight(position: SpinalNodeRef): Promise<PositionData> {
@@ -85,9 +92,16 @@ class SpinalMain {
         const storeINFO = await utils.getStoreForPosition(position.id.get());
         return { position, CP, storeINFO};
     }
-    public async LightControl(contextName: string, categoryName: string, groupName: string) {
+    
+    public async getPositionTempData(position: SpinalNodeRef):Promise<PositionTempData>{
+        const CP = await utils.getCommandControlPoint(position.id.get(), constants.HeatControlPoint);
+        const TempEndpoint = await utils.getTempEndpoint(position.id.get())
+        return {position,CP,TempEndpoint}
+    }
+   
+    public async LightControl(Positions: SpinalNodeRef[]) {
         
-        let Positions = await utils.getPositions(contextName, categoryName, groupName); 
+        
         const promises = Positions.map(async (pos: SpinalNodeRef) => {
             const posData = await this.getPositionDataLight(pos);
             this.CP_to_PositionsToData.set(posData.CP.id.get(), posData);
@@ -96,12 +110,13 @@ class SpinalMain {
         
         const PosList = await Promise.all(promises);
         await utils.BindPositionsToGrpDALI(PosList);
-        console.log("done binding light control"); 
+        console.log("done binding light control");
+        FileSystem._disp = true
 }
 
-public async StoresControl(contextName: string, categoryName: string, groupName: string) {
+public async StoresControl(Positions: SpinalNodeRef[]) {
         
-    let Positions = await utils.getPositions(contextName, categoryName, groupName); 
+    
     const promeses2 = Positions.map(async (pos: SpinalNodeRef) => {
         const PosStoreData = this.getPositionDataStore(pos);
         return PosStoreData;});
@@ -112,7 +127,21 @@ public async StoresControl(contextName: string, categoryName: string, groupName:
    console.log("done binding store control");
    
 }
-
+public async TempControl(Positions: SpinalNodeRef[]) {
+        const TempDataList = []
+    for (const pos of Positions) {
+        const posData = await this.getPositionTempData(pos);
+        TempDataList.push(posData);
+    }    
+    // const promeses3= Positions.map(async (pos: SpinalNodeRef) => {
+    //     const PosTempData = this.getPositionTempData(pos);
+    //     return PosTempData;});
+    // const TempDataList = await Promise.all(promeses3);
+    await utils.BindTempControlPoint(TempDataList);
+    console.log("done binding temp control");
+   
+     
+}
 }
 
 async function Main() {
