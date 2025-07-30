@@ -60,6 +60,8 @@ class SpinalMain {
         const categoryName = constants.Positions.category;
         const groupName = constants.Positions.groupe;
         const Positions = await utils.getPositions(contextName, categoryName, groupName);
+        //const testList = Positions.filter(e=>e.id.get()==="fca2-a6bd-506e-193e4d89ff7")
+        //console.log("test", testList[0].name.get());
         this.LightControl(Positions);
         this.StoresControl(Positions);
         this.TempControl(Positions);

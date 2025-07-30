@@ -4,12 +4,14 @@ import { NetworkService } from "spinal-model-bmsnetwork";
 import { SpinalAttribute } from "spinal-models-documentation/declarations";
 import { ICategory } from "spinal-env-viewer-plugin-documentation-service";
 import { PositionData, PositionsDataStore, PositionTempData } from "./types";
+import { ProcessBind } from "./processBind";
 export declare const networkService: NetworkService;
 /**
  * @export
  * @class Utils
  */
 export declare class Utils {
+    processBind: ProcessBind;
     ATTRIBUTE_NAME: string;
     INIT_ZONE_MODE: string;
     ATTRIBUTE_CATEGORY_NAME: string;
@@ -40,20 +42,20 @@ export declare class Utils {
     getZone(bmsGrpId: string, grpname: string): Promise<SpinalNodeRef | null>;
     changezoneMode(zone: SpinalNodeRef): Promise<SpinalAttribute>;
     private _waitModeChange;
-    checkAndUpdateMode(zone: any, posinfo: any, controlPoint: any): Promise<void>;
+    checkAndUpdateMode(zonedata: any[], controlPoint: any): Promise<void>;
     /**
         * Function that search for the targeted attribute of a node and update it's value
         * @param  {SpinalNode} endpointNode
         * @param  {any} valueToPush
         * @returns Promise
         */
-    updateControlValueAttribute(endpointNode: SpinalNode, attributeCategoryName: string | ICategory, attributeName: string, valueToPush: any): Promise<SpinalAttribute | undefined>;
+    updateControlValueAttribute(endpointNode: SpinalNode<any>, attributeCategoryName: string | ICategory, attributeName: string, valueToPush: any): Promise<SpinalAttribute | undefined>;
     /**
         * Function that search and return the targeted attribute. Creates it if it doesn't exist with a default value of null
         * @param  {SpinalNode} endpointNode
         * @returns Promise
         */
-    _getEndpointControlValue(endpointNode: SpinalNode, attributeCategoryName: string | ICategory, attributeName: string): Promise<SpinalAttribute>;
+    _getEndpointControlValue(endpointNode: SpinalNode<any>, attributeCategoryName: string | ICategory, attributeName: string): Promise<SpinalAttribute>;
     updateGrpValue(bmsgrpDALI: SpinalNodeRef, valueToPush: string, valueEndpoint: SpinalNodeRef): Promise<void>;
     BindPositionsToGrpDALI(posList: PositionData[]): Promise<void>;
     updateEndpointValue(endpoint: SpinalNodeRef, valueToPush: string): Promise<void>;

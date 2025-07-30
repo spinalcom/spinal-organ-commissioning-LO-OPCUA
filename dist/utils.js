@@ -27,6 +27,7 @@ exports.Utils = exports.networkService = void 0;
 const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const spinal_model_bmsnetwork_1 = require("spinal-model-bmsnetwork");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
+const processBind_1 = require("./processBind");
 exports.networkService = new spinal_model_bmsnetwork_1.NetworkService();
 /**
  * @export
@@ -34,6 +35,7 @@ exports.networkService = new spinal_model_bmsnetwork_1.NetworkService();
  */
 class Utils {
     constructor() {
+        this.processBind = new processBind_1.ProcessBind();
         this.ATTRIBUTE_NAME = "controlValue";
         this.INIT_ZONE_MODE = "initZoneMode";
         this.ATTRIBUTE_CATEGORY_NAME = "default";
@@ -195,13 +197,13 @@ class Utils {
             .find(child => child.name.get() === "Mode fonctionnement");
         //console.log(bmsendpoint.name.get())
         let currentvalue = (await bmsendpoint.element.load()).currentValue.get();
-        console.log("current value for zone mode ", currentvalue);
+        console.log("current value for  ", zone.name.get(), ":", currentvalue);
         //if (currentvalue=="0"){
         const zoneNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(bmszone[0].id.get());
         const endpointNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(bmsendpoint.id.get());
         //update controlvalue attribute pour la zone 
-        await this.updateControlValueAttribute(zoneNode, this.ATTRIBUTE_CATEGORY_NAME, this.ATTRIBUTE_NAME, "1");
-        zoneNode.info.directModificationDate.set(Date.now());
+        //await this.updateControlValueAttribute(zoneNode, this.ATTRIBUTE_CATEGORY_NAME, this.ATTRIBUTE_NAME, "1");
+        //zoneNode.info.directModificationDate.set(Date.now());
         //update controlvalue attribute pour le endpoint mode de fonctionnement
         const initZoneAttribute = await this.updateControlValueAttribute(endpointNode, this.ATTRIBUTE_CATEGORY_NAME, this.INIT_ZONE_MODE, "0");
         await this.updateControlValueAttribute(endpointNode, this.ATTRIBUTE_CATEGORY_NAME, this.ATTRIBUTE_NAME, "1");
@@ -211,44 +213,73 @@ class Utils {
     }
     _waitModeChange(value) {
         return new Promise((resolve, reject) => {
-            const bindProcess = value.bind(() => {
+            this.processBind.addBind(value, () => {
                 if (value.get() == 1) {
-                    value.unbind(bindProcess);
+                    this.processBind.unbind(value);
                     resolve(value);
                     return;
                 }
                 else if (value.get() == -1) {
-                    value.unbind(bindProcess);
+                    this.processBind.unbind(value);
                     reject("opcua request failed");
                     return;
                 }
             });
+            // const bindProcess = value.bind(() => {
+            //     if (value.get() == 1) {
+            //         value.unbind(bindProcess);
+            //         resolve(value);
+            //         return;
+            //     } else if (value.get() == -1) {
+            //         value.unbind(bindProcess);
+            //         reject("opcua request failed");
+            //         return;
+            //     }
+            // });
         });
     }
-    async checkAndUpdateMode(zone, posinfo, controlPoint) {
+    /* public async checkAndUpdateMode(zone: any, posinfo: any, controlPoint: any) {
         try {
+            
             const attribute = await this.changezoneMode(zone);
             await this._waitModeChange(attribute.value);
+
             // Mettre à jour la valeur du groupe
             const valueToPush = (await controlPoint.element.load()).currentValue.get();
             await this.updateGrpValue(posinfo.bmsgroup, valueToPush, posinfo.endpoint);
+        } catch (error) {
+            console.error("error in checkAndUpdateMode", error);
+
+        }
+    }*/
+    async checkAndUpdateMode(zonedata, controlPoint) {
+        try {
+            for (const data of zonedata) {
+                const attribute = await this.changezoneMode(data.zoneNode);
+                await this._waitModeChange(attribute.value);
+                for (const groupe of data.groupes) {
+                    // Mettre à jour la valeur du groupe
+                    const valueToPush = (await controlPoint.element.load()).currentValue.get();
+                    await this.updateGrpValue(groupe.bmsGrp, valueToPush, groupe.endpoint);
+                }
+            }
         }
         catch (error) {
             console.error("error in checkAndUpdateMode", error);
         }
-        //////////////////////////////////////////////////////////////////////////////////////////
-        // // Vérifier la valeur du mode de fonctionnement
-        // const currentMode = (await controlPoint.element.load()).currentValue.get();
-        // if (currentMode === 1) {
-        //     // Attendre que l'organe de contrôle OPCUA mette la valeur à -1
-        //     while ((await controlPoint.element.load()).currentValue.get() !== -1) {
-        //         await new Promise(resolve => setTimeout(resolve, 100)); // Attendre 100ms
-        //     }
-        //     // Mettre à jour la valeur du groupe
-        //     const valueToPush = (await controlPoint.element.load()).currentValue.get();
-        //     await this.updateGrpValue(posinfo.bmsgroup, valueToPush, posinfo.endpoint);
-        // }
     }
+    //////////////////////////////////////////////////////////////////////////////////////////
+    // // Vérifier la valeur du mode de fonctionnement
+    // const currentMode = (await controlPoint.element.load()).currentValue.get();
+    // if (currentMode === 1) {
+    //     // Attendre que l'organe de contrôle OPCUA mette la valeur à -1
+    //     while ((await controlPoint.element.load()).currentValue.get() !== -1) {
+    //         await new Promise(resolve => setTimeout(resolve, 100)); // Attendre 100ms
+    //     }
+    //     // Mettre à jour la valeur du groupe
+    //     const valueToPush = (await controlPoint.element.load()).currentValue.get();
+    //     await this.updateGrpValue(posinfo.bmsgroup, valueToPush, posinfo.endpoint);
+    // }
     /**
         * Function that search for the targeted attribute of a node and update it's value
         * @param  {SpinalNode} endpointNode
@@ -259,7 +290,7 @@ class Utils {
         const attribute = await this._getEndpointControlValue(endpointNode, attributeCategoryName, attributeName);
         if (attribute) {
             attribute.value.set(valueToPush);
-            console.log(endpointNode.info.name.get() + " ==>  is updated with the value : " + attribute.value);
+            console.log(attributeName + " ==>  is updated with the value : " + attribute.value);
             return attribute;
         }
         else {
@@ -281,9 +312,10 @@ class Utils {
         const grpNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(bmsgrpDALI.id.get());
         const endpointNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(valueEndpoint.id.get());
         //update controlValue attribute for the group
-        await this.updateControlValueAttribute(grpNode, this.ATTRIBUTE_CATEGORY_NAME, this.ATTRIBUTE_NAME, valueToPush);
-        grpNode.info.directModificationDate.set(Date.now());
+        //await this.updateControlValueAttribute(grpNode, this.ATTRIBUTE_CATEGORY_NAME, this.ATTRIBUTE_NAME, valueToPush);
+        //grpNode.info.directModificationDate.set(Date.now());
         //update controlValue attribute for the endpoint
+        console.log("updating endpoint value for group", grpNode.info.name.get(), "with value:", valueToPush);
         await this.updateControlValueAttribute(endpointNode, this.ATTRIBUTE_CATEGORY_NAME, this.ATTRIBUTE_NAME, valueToPush);
         endpointNode.info.directModificationDate.set(Date.now());
     }
@@ -319,17 +351,20 @@ class Utils {
     }*/
     async BindPositionsToGrpDALI(posList) {
         for (const item of posList) {
-            const { position, CP: controlPoint, PosINFO } = item;
+            const { CP: controlPoint, PosINFO } = item;
             // Vérifier si controlPoint et PosINFO sont valides
             if (controlPoint != undefined && PosINFO.length > 0) {
-                console.log("Binding control point:", controlPoint.name.get(), "for position", position.name.get());
+                //console.log("Binding control point:", controlPoint.name.get(), "for position", position.name.get());
                 let CPmodifDate = controlPoint.directModificationDate;
-                console.log("DirectModificationDate for", controlPoint.name.get(), ":", CPmodifDate.get(), [CPmodifDate._server_id]);
+                //console.log("DirectModificationDate for", controlPoint.name.get(), ":", CPmodifDate.get(), [CPmodifDate._server_id]);
                 // Surveiller les modifications pour ce controlPoint
-                CPmodifDate.bind(async () => {
+                this.processBind.addBind(CPmodifDate, 
+                // CPmodifDate.bind(async () => {
+                async () => {
                     console.log("Control Point modified:", controlPoint.name.get());
                     await this.bindControlPointCallBack(item);
-                }, false);
+                });
+                // }, false);
             }
         }
     }
@@ -344,71 +379,113 @@ class Utils {
             const { position, CP: controlPoint, storeINFO } = item;
             // Vérifier si controlPoint et PosINFO sont valides
             if (controlPoint != undefined && storeINFO.length > 0) {
-                console.log("Binding control point:", controlPoint.name.get(), "for position", position.name.get());
+                //console.log("Binding control point:", controlPoint.name.get(), "for position", position.name.get());
                 let CPmodifDate = controlPoint.directModificationDate;
-                console.log("DirectModificationDate for", controlPoint.name.get(), ":", CPmodifDate.get(), [CPmodifDate._server_id]);
+                //console.log("DirectModificationDate for", controlPoint.name.get(), ":", CPmodifDate.get(), [CPmodifDate._server_id]);
                 // Surveiller les modifications pour ce controlPoint
-                CPmodifDate.bind(async () => {
+                // CPmodifDate.bind(async () => {
+                this.processBind.addBind(CPmodifDate, async () => {
                     console.log("Control Point modified:", controlPoint.name.get());
                     for (const info of storeINFO) {
                         const endpValue = (await controlPoint.element.load()).currentValue.get();
                         await this.updateEndpointValue(info.endpoint, endpValue);
                     }
-                }, false);
+                });
+                // }, false);
             }
         }
     }
-    async bindControlPointCallBack(PositionData) {
+    /*private async bindControlPointCallBack(PositionData: PositionData) {
         const { position, CP: controlPoint, PosINFO } = PositionData;
+
         for (const posinfo of PosINFO) {
             const zone = await this.getZone(posinfo.bmsgroup.id.get(), posinfo.bmsgroup.name.get());
             if (zone) {
                 console.log("Position", position.name.get(), "has zone", zone.name.get());
+
                 await this.checkAndUpdateMode(zone, posinfo, controlPoint);
             }
         }
+    }*/
+    async bindControlPointCallBack(PositionData) {
+        const { position, CP: controlPoint, PosINFO } = PositionData;
+        const zoneData = [];
+        for (const posinfo of PosINFO) {
+            const zone = await this.getZone(posinfo.bmsgroup.id.get(), posinfo.bmsgroup.name.get());
+            if (zone) {
+                const zoneId = zone.id.get();
+                const existingZoneEntry = zoneData.find(entry => entry.zoneNode.id.get() === zoneId);
+                const groupEntry = {
+                    bmsGrp: posinfo.bmsgroup,
+                    endpoint: posinfo.endpoint
+                };
+                if (existingZoneEntry) {
+                    // Évite les doublons en vérifiant l'id du bmsGrp
+                    const isDuplicate = existingZoneEntry.groupes.some(g => g.bmsGrp.id.get() === posinfo.bmsgroup.id.get());
+                    if (!isDuplicate) {
+                        existingZoneEntry.groupes.push(groupEntry);
+                    }
+                }
+                else {
+                    zoneData.push({
+                        zoneNode: zone,
+                        groupes: [groupEntry]
+                    });
+                }
+                console.log("Group DALI", posinfo.bmsgroup.name.get(), "has zone", zone.name.get());
+            }
+        }
+        await this.checkAndUpdateMode(zoneData, controlPoint);
     }
     async getTempEndpoint(positionID) {
-        const PosParents = await spinal_env_viewer_graph_service_1.SpinalGraphService.getParents(positionID, ["hasNetworkTreeBimObject"]);
-        if (PosParents.length === 0)
-            return undefined;
-        const zoneTemp = PosParents.find((parent) => { var _a; return ((_a = parent.subtype) === null || _a === void 0 ? void 0 : _a.get()) === "zone_temperature"; });
-        if (zoneTemp == undefined)
-            return undefined;
-        const zonefilter = (zoneTemp.name.get()).split("-")[1];
-        const automate = await spinal_env_viewer_graph_service_1.SpinalGraphService.getParents(zoneTemp.id.get(), ["hasNetworkTreeGroup"]);
-        if (automate.length === 0)
-            return undefined;
-        const bmsAutomate = await spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(automate[0].id.get(), ["hasBmsDevice"]);
-        if (bmsAutomate.length === 0)
-            return undefined;
-        const bmsendpointGroup = await spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(bmsAutomate[0].id.get(), ["hasBmsEndpointGroup"]);
-        if (bmsendpointGroup.length === 0)
-            return undefined;
-        const analog_values = bmsendpointGroup.find((child) => child.name.get() === "analog_value");
-        if (analog_values === undefined)
-            return undefined;
-        const bmsendpoints = await spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(analog_values.id.get(), ["hasBmsEndpoint"]);
-        if (bmsendpoints.length === 0)
-            return undefined;
-        const endpoint = bmsendpoints.find((child) => (child.name.get()).includes("X3") && (child.name.get()).includes(zonefilter));
-        if (endpoint === undefined)
-            return undefined;
-        return (endpoint);
+        try {
+            const PosParents = await spinal_env_viewer_graph_service_1.SpinalGraphService.getParents(positionID, ["hasNetworkTreeBimObject"]);
+            if (PosParents.length === 0)
+                return undefined;
+            const zoneTemp = PosParents.find((parent) => { var _a; return ((_a = parent.subtype) === null || _a === void 0 ? void 0 : _a.get()) === "zone_temperature"; });
+            if (zoneTemp == undefined)
+                return undefined;
+            const zonefilter = (zoneTemp.name.get()).split("-")[1];
+            const automate = await spinal_env_viewer_graph_service_1.SpinalGraphService.getParents(zoneTemp.id.get(), ["hasNetworkTreeGroup"]);
+            if (automate.length === 0)
+                return undefined;
+            const bmsAutomate = await spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(automate[0].id.get(), ["hasBmsDevice"]);
+            if (bmsAutomate.length === 0)
+                return undefined;
+            const bmsendpointGroup = await spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(bmsAutomate[0].id.get(), ["hasBmsEndpointGroup"]);
+            if (bmsendpointGroup.length === 0)
+                return undefined;
+            const analog_values = bmsendpointGroup.find((child) => child.name.get() === "analog_value");
+            if (analog_values === undefined)
+                return undefined;
+            const bmsendpoints = await spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(analog_values.id.get(), ["hasBmsEndpoint"]);
+            if (bmsendpoints.length === 0)
+                return undefined;
+            const endpoint = bmsendpoints.find((child) => (child.name.get()).includes("X3") && (child.name.get()).includes(zonefilter));
+            if (endpoint === undefined)
+                return undefined;
+            return (endpoint);
+        }
+        catch (error) {
+            const realposition = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(positionID);
+            console.log(realposition._server_id, "getTempEndpoint ERROR for position", realposition.info.name.get());
+        }
     }
     async BindTempControlPoint(TempDataList) {
         for (const item of TempDataList) {
             const { position, CP: controlPoint, TempEndpoint } = item;
             if (controlPoint != undefined && TempEndpoint != undefined) {
-                console.log("Binding Temperature control point:", controlPoint.name.get(), "for position", position.name.get());
+                // console.log("Binding Temperature control point:", controlPoint.name.get(), "for position", position.name.get());
                 let CPmodifDate = controlPoint.directModificationDate;
-                console.log("DirectModificationDate for", controlPoint.name.get(), ":", CPmodifDate.get(), [CPmodifDate._server_id]);
+                // console.log("DirectModificationDate for", controlPoint.name.get(), ":", CPmodifDate.get(), [CPmodifDate._server_id]);
                 // Surveiller les modifications pour ce controlPoint
-                CPmodifDate.bind(async () => {
+                // CPmodifDate.bind(async () => {
+                this.processBind.addBind(CPmodifDate, async () => {
                     console.log("Control Point modified:", controlPoint.name.get());
                     const endpValue = (await controlPoint.element.load()).currentValue.get();
                     await this.updateEndpointValue(TempEndpoint, endpValue);
-                }, false);
+                });
+                // }, false);
             }
         }
     }

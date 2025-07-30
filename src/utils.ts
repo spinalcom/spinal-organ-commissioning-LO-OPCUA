@@ -231,14 +231,14 @@ export class Utils {
 
         //console.log(bmsendpoint.name.get())
         let currentvalue = (await bmsendpoint.element.load()).currentValue.get();
-        console.log("current value for zone mode ", currentvalue)
+        console.log("current value for  " ,zone.name.get() ,":", currentvalue)
         //if (currentvalue=="0"){
 
         const zoneNode = SpinalGraphService.getRealNode(bmszone[0].id.get());
         const endpointNode = SpinalGraphService.getRealNode(bmsendpoint.id.get());
         //update controlvalue attribute pour la zone 
-        await this.updateControlValueAttribute(zoneNode, this.ATTRIBUTE_CATEGORY_NAME, this.ATTRIBUTE_NAME, "1");
-        zoneNode.info.directModificationDate.set(Date.now());
+        //await this.updateControlValueAttribute(zoneNode, this.ATTRIBUTE_CATEGORY_NAME, this.ATTRIBUTE_NAME, "1");
+        //zoneNode.info.directModificationDate.set(Date.now());
 
         //update controlvalue attribute pour le endpoint mode de fonctionnement
         const initZoneAttribute = await this.updateControlValueAttribute(endpointNode, this.ATTRIBUTE_CATEGORY_NAME, this.INIT_ZONE_MODE, "0");
@@ -278,8 +278,9 @@ export class Utils {
         });
     }
 
-    public async checkAndUpdateMode(zone: any, posinfo: any, controlPoint: any) {
+    /* public async checkAndUpdateMode(zone: any, posinfo: any, controlPoint: any) {
         try {
+            
             const attribute = await this.changezoneMode(zone);
             await this._waitModeChange(attribute.value);
 
@@ -290,10 +291,28 @@ export class Utils {
             console.error("error in checkAndUpdateMode", error);
 
         }
+    }*/
+
+    public async checkAndUpdateMode(zonedata: any[], controlPoint: any) {
+        try {
+
+            for (const data of zonedata) {
+                const attribute = await this.changezoneMode(data.zoneNode);
+                await this._waitModeChange(attribute.value);
+                for (const groupe of data.groupes) {
+
+                    // Mettre à jour la valeur du groupe
+                    const valueToPush = (await controlPoint.element.load()).currentValue.get();
+                    await this.updateGrpValue(groupe.bmsGrp, valueToPush, groupe.endpoint);
+                }
+            }
 
 
+        } catch (error) {
+            console.error("error in checkAndUpdateMode", error);
 
-
+        }
+    }    
         //////////////////////////////////////////////////////////////////////////////////////////
         // // Vérifier la valeur du mode de fonctionnement
         // const currentMode = (await controlPoint.element.load()).currentValue.get();
@@ -307,7 +326,7 @@ export class Utils {
         //     const valueToPush = (await controlPoint.element.load()).currentValue.get();
         //     await this.updateGrpValue(posinfo.bmsgroup, valueToPush, posinfo.endpoint);
         // }
-    }
+    
 
     /**
         * Function that search for the targeted attribute of a node and update it's value 
@@ -319,7 +338,7 @@ export class Utils {
         const attribute = await this._getEndpointControlValue(endpointNode, attributeCategoryName, attributeName)
         if (attribute) {
             attribute.value.set(valueToPush);
-            console.log(endpointNode.info.name.get() + " ==>  is updated with the value : " + attribute.value);
+            console.log(attributeName+ " ==>  is updated with the value : " + attribute.value);
             return attribute;
         }
         else {
@@ -347,10 +366,11 @@ export class Utils {
         const endpointNode = SpinalGraphService.getRealNode(valueEndpoint.id.get());
         //update controlValue attribute for the group
 
-        await this.updateControlValueAttribute(grpNode, this.ATTRIBUTE_CATEGORY_NAME, this.ATTRIBUTE_NAME, valueToPush);
-        grpNode.info.directModificationDate.set(Date.now());
+        //await this.updateControlValueAttribute(grpNode, this.ATTRIBUTE_CATEGORY_NAME, this.ATTRIBUTE_NAME, valueToPush);
+        //grpNode.info.directModificationDate.set(Date.now());
 
         //update controlValue attribute for the endpoint
+        console.log("updating endpoint value for group", grpNode.info.name.get(), "with value:", valueToPush);
         await this.updateControlValueAttribute(endpointNode, this.ATTRIBUTE_CATEGORY_NAME, this.ATTRIBUTE_NAME, valueToPush);
         endpointNode.info.directModificationDate.set(Date.now());
     }
@@ -442,7 +462,7 @@ export class Utils {
 
     }
 
-    private async bindControlPointCallBack(PositionData: PositionData) {
+    /*private async bindControlPointCallBack(PositionData: PositionData) {
         const { position, CP: controlPoint, PosINFO } = PositionData;
 
         for (const posinfo of PosINFO) {
@@ -453,7 +473,62 @@ export class Utils {
                 await this.checkAndUpdateMode(zone, posinfo, controlPoint);
             }
         }
+    }*/
+    private async bindControlPointCallBack(PositionData: PositionData) {
+        const { position, CP: controlPoint, PosINFO } = PositionData;
+
+        const zoneData: {
+            zoneNode: any;
+            groupes: { bmsGrp: any; endpoint: any }[];
+        }[] = [];
+
+        for (const posinfo of PosINFO) {
+            const zone = await this.getZone(
+                posinfo.bmsgroup.id.get(),
+                posinfo.bmsgroup.name.get()
+            );
+
+            if (zone) {
+                const zoneId = zone.id.get();
+                const existingZoneEntry = zoneData.find(
+                    entry => entry.zoneNode.id.get() === zoneId
+                );
+
+                const groupEntry = {
+                    bmsGrp: posinfo.bmsgroup,
+                    endpoint: posinfo.endpoint
+                };
+
+                if (existingZoneEntry) {
+                // Évite les doublons en vérifiant l'id du bmsGrp
+                const isDuplicate = existingZoneEntry.groupes.some(
+                    g => g.bmsGrp.id.get() === posinfo.bmsgroup.id.get()
+                );
+
+                if (!isDuplicate) {
+                    existingZoneEntry.groupes.push(groupEntry);
+                }
+                } else {
+                    zoneData.push({
+                        zoneNode: zone,
+                        groupes: [groupEntry]
+                    });
+                }
+
+                console.log(
+                    
+                    posinfo.bmsgroup.name.get(),
+                    "has zone",
+                    zone.name.get()
+                );
+            }
+        }
+
+        await this.checkAndUpdateMode(zoneData, controlPoint);
     }
+
+
+   
 
     public async getTempEndpoint(positionID: string): Promise<SpinalNodeRef | undefined> {
         try {
