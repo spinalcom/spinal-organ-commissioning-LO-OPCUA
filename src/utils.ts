@@ -554,7 +554,7 @@ export class Utils {
             const bmsendpoints = await SpinalGraphService.getChildren(analog_values.id.get(), ["hasBmsEndpoint"])
             if (bmsendpoints.length === 0) return undefined;
 
-            const endpoint = bmsendpoints.find((child) => (child.name.get()).includes("X3") && (child.name.get()).includes(zonefilter));
+            const endpoint = bmsendpoints.find((child) => (child.name.get()).includes("X2") && (child.name.get()).includes(zonefilter));
             if (endpoint === undefined) return undefined;
 
             return (endpoint);
