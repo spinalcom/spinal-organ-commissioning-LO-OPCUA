@@ -1,6 +1,6 @@
 "use strict";
 /*
- * Copyright 2022 SpinalCom - www.spinalcom.com
+ * Copyright 2025 SpinalCom - www.spinalcom.com
  *
  * This file is part of SpinalCore.
  *
@@ -30,8 +30,8 @@ const utils_1 = require("./utils");
 const constants = require("./constants");
 const utils = new utils_1.Utils();
 class SpinalMain {
+    //private CP_to_PositionsToData = new Map<string, PositionData>();
     constructor() {
-        this.CP_to_PositionsToData = new Map();
         const url = `${config.hubProtocol}://${config.userId}:${config.userPassword}@${config.hubHost}:${config.hubPort}/`;
         this.connect = spinal_core_connectorjs_type_1.spinalCore.connect(url);
     }
@@ -56,58 +56,31 @@ class SpinalMain {
      * The main function of the class
      */
     async MainJob() {
-        const contextName = constants.Positions.context;
-        const categoryName = constants.Positions.category;
-        const groupName = constants.Positions.groupe;
-        const Positions = await utils.getPositions(contextName, categoryName, groupName);
-        //const testList = Positions.filter(e=>e.id.get()==="fca2-a6bd-506e-193e4d89ff7")
-        //console.log("test", testList[0].name.get());
-        this.LightControl(Positions);
-        this.StoresControl(Positions);
-        this.TempControl(Positions);
-    }
-    async getPositionDataLight(position) {
-        const CP = await utils.getCommandControlPoint(position.id.get(), constants.LightControlPoint);
-        const PosINFO = await utils.getGroupsForPosition(position.id.get());
-        return { position, CP, PosINFO };
-    }
-    async getPositionDataStore(position) {
-        const CP = await utils.getCommandControlPoint(position.id.get(), constants.StoreControlPoint);
-        const storeINFO = await utils.getStoreForPosition(position.id.get());
-        return { position, CP, storeINFO };
-    }
-    async getPositionTempData(position) {
-        const CP = await utils.getCommandControlPoint(position.id.get(), constants.HeatControlPoint);
-        const TempEndpoint = await utils.getTempEndpoint(position.id.get());
-        return { position, CP, TempEndpoint };
-    }
-    async LightControl(Positions) {
-        const promises = Positions.map(async (pos) => {
-            const posData = await this.getPositionDataLight(pos);
-            this.CP_to_PositionsToData.set(posData.CP.id.get(), posData);
-            return posData;
-        });
-        const PosList = await Promise.all(promises);
-        await utils.BindPositionsToGrpDALI(PosList);
-        console.log("done binding light control");
-    }
-    async StoresControl(Positions) {
-        const promeses2 = Positions.map(async (pos) => {
-            const PosStoreData = this.getPositionDataStore(pos);
-            return PosStoreData;
-        });
-        const storeList = await Promise.all(promeses2);
-        await utils.BindStoresControlPoint(storeList);
-        console.log("done binding store control");
-    }
-    async TempControl(Positions) {
-        const promeses3 = Positions.map(async (pos) => {
-            const PosTempData = this.getPositionTempData(pos);
-            return PosTempData;
-        });
-        const TempDataList = await Promise.all(promeses3);
-        await utils.BindTempControlPoint(TempDataList);
-        console.log("done binding temp control");
+        const contextName = constants.Objects.context;
+        const categoryName = constants.Objects.category;
+        const groupName = constants.Objects.groupe;
+        const objects = await utils.getObjects(contextName, categoryName, groupName);
+        //const test = objects.slice(0, 30);
+        //console.log("Objects:", objects);
+        const chunkSize = 1; // define chunk size
+        console.log("start Integration Data Handler");
+        for (let i = 0; i < objects.length; i += chunkSize) {
+            console.log("Processing object number: ", i, "/", chunkSize);
+            const chunk = objects.slice(i, i + chunkSize);
+            await Promise.all(chunk.map(item => utils.IntegDataHandler(item)));
+            console.log("Processed chunk: ", i + chunkSize, "/", objects.length);
+        }
+        console.log("Done Integration Data Handler");
+        //Process OPCUA
+        console.log("start Opcua Data Handler");
+        for (let i = 0; i < objects.length; i += chunkSize) {
+            console.log("Processing object number: ", i, "/", chunkSize);
+            const chunk = objects.slice(i, i + chunkSize);
+            await Promise.all(chunk.map(item => utils.OpcuaDataHandler(item)));
+            console.log("Processed chunk: ", i + chunkSize, "/", objects.length);
+        }
+        console.log("Done Opcua Data Handler");
+        console.log("Done main job");
     }
 }
 async function Main() {
@@ -115,6 +88,11 @@ async function Main() {
         console.log('Organ Start');
         const spinalMain = new SpinalMain();
         await spinalMain.init();
+        /*cron.schedule(`0 23 * * *`, async (): Promise<void> => {
+           console.log("Starting main job at 23:00");
+           await spinalMain.MainJob();
+           console.log("Main job finished");
+       });*/
         await spinalMain.MainJob();
         //process.exit(0);
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 SpinalCom - www.spinalcom.com
+ * Copyright 2025 SpinalCom - www.spinalcom.com
  * 
  * This file is part of SpinalCore.
  * 
@@ -24,16 +24,36 @@
 
 
 
-export const Positions = Object.freeze({
+export const Objects = Object.freeze({
     context: "Gestion des équipements",
-    category: "Typologie",
-    groupe:"Postes de travail"
+    category: "Commissioning télécommande",
+    groupe:"test"
+});
+export const ZoneContext = Object.freeze({
+    context: "Hardware Context Zones"
+
+});
+export const PositionContext = Object.freeze({
+    context: "Hardware Context Position Groupe"
+
 });
 
+export const controlPointProfil = "Commissioning";
 
-export const LightControlPoint = "COMMAND_LIGHT"
-export const StoreControlPoint = "COMMAND_BLIND"
-export const HeatControlPoint="COMMAND_TEMPERATURE"
+export const controlPointNames = [
+    "Has Balast",
+    "Has Group",
+    "Has Zone",
+    "Has Duplicated Zone",
+    "Monitored/Integration",
+    "Monitored/OPCUA"
+];
+export const BalastControlPoint = "Has Balast"
+export const GroupControlPoint = "Has Group"
+export const ZoneControlPoint="Has Zone"
+export const DuplicatedZoneControlPoint="Has Duplicated Zone"
+export const IntegrationControlPoint="Monitored/Integration"
+export const OPCUAControlPoint="Monitored/OPCUA"
 
 
 

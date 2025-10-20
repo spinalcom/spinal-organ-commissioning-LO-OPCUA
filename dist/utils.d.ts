@@ -1,66 +1,28 @@
 import { SpinalNodeRef } from "spinal-env-viewer-graph-service";
-import { SpinalNode } from "spinal-model-graph";
 import { NetworkService } from "spinal-model-bmsnetwork";
-import { SpinalAttribute } from "spinal-models-documentation/declarations";
-import { ICategory } from "spinal-env-viewer-plugin-documentation-service";
-import { PositionData, PositionsDataStore, PositionTempData } from "./types";
-import { ProcessBind } from "./processBind";
+import { ObjectData } from "./types";
 export declare const networkService: NetworkService;
 /**
  * @export
  * @class Utils
  */
 export declare class Utils {
-    processBind: ProcessBind;
-    ATTRIBUTE_NAME: string;
-    INIT_ZONE_MODE: string;
-    ATTRIBUTE_CATEGORY_NAME: string;
-    DEFAULT_COMMAND_VALUE: string;
-    store_filter: string;
     /**
-     
-
     /**
-     * Function that returns Positions from an equipment context
+     * Function that returns bimobjects from an equipment context
      * @param  {string} contextName
      * @param  {string} categoryName
      * @param  {string} GroupName
      * @returns Promise
      */
-    getPositions(ContextName: string, CategoryName: string, GroupName: string): Promise<SpinalNodeRef[]>;
-    getCommandControlPoint(workpositionId: string, controlPointName: String): Promise<SpinalNodeRef | undefined>;
-    getGroupsForPosition(workpositionId: string): Promise<Array<{
-        bmsgroup: SpinalNodeRef;
-        Netgroup: SpinalNodeRef;
-        endpoint: SpinalNodeRef;
-    }>>;
-    getStoreForPosition(workpositionId: string): Promise<Array<{
-        canal: SpinalNodeRef;
-        Motstore: SpinalNodeRef;
-        endpoint: SpinalNodeRef;
-    }>>;
-    getZone(bmsGrpId: string, grpname: string): Promise<SpinalNodeRef | null>;
-    changezoneMode(zone: SpinalNodeRef): Promise<SpinalAttribute>;
-    private _waitModeChange;
-    checkAndUpdateMode(zonedata: any[], controlPoint: any): Promise<void>;
-    /**
-        * Function that search for the targeted attribute of a node and update it's value
-        * @param  {SpinalNode} endpointNode
-        * @param  {any} valueToPush
-        * @returns Promise
-        */
-    updateControlValueAttribute(endpointNode: SpinalNode<any>, attributeCategoryName: string | ICategory, attributeName: string, valueToPush: any): Promise<SpinalAttribute | undefined>;
-    /**
-        * Function that search and return the targeted attribute. Creates it if it doesn't exist with a default value of null
-        * @param  {SpinalNode} endpointNode
-        * @returns Promise
-        */
-    _getEndpointControlValue(endpointNode: SpinalNode<any>, attributeCategoryName: string | ICategory, attributeName: string): Promise<SpinalAttribute>;
-    updateGrpValue(bmsgrpDALI: SpinalNodeRef, valueToPush: string, valueEndpoint: SpinalNodeRef): Promise<void>;
-    BindPositionsToGrpDALI(posList: PositionData[]): Promise<void>;
-    updateEndpointValue(endpoint: SpinalNodeRef, valueToPush: string): Promise<void>;
-    BindStoresControlPoint(posList: PositionsDataStore[]): Promise<void>;
-    private bindControlPointCallBack;
-    getTempEndpoint(positionID: string): Promise<SpinalNodeRef | undefined>;
-    BindTempControlPoint(TempDataList: PositionTempData[]): Promise<void>;
+    getObjects(ContextName: string, CategoryName: string, GroupName: string): Promise<SpinalNodeRef[]>;
+    getControlPoint(ObjectId: string, controlPointNames: string[], objectData: ObjectData): Promise<ObjectData | undefined>;
+    getGroupNumber(bmsendpointID: string): Promise<string>;
+    FindGrpInContext(ContextName: string, nodeType: string, grpNumber: string, subnetworkID: string): Promise<any | false>;
+    getSubnetwork(elementID: string): Promise<string | undefined>;
+    DoubleCheckZone(Bmsgrp: any): Promise<boolean>;
+    IntegDataHandler(item: SpinalNodeRef): Promise<void>;
+    getZoneAttributeFromGrpDALI(subnetworkID: string, grpNumber: string): Promise<string | undefined>;
+    getZoneFromOpcua(subnetworkID: string, zoneInfo: string): Promise<any>;
+    OpcuaDataHandler(item: SpinalNodeRef): Promise<void>;
 }

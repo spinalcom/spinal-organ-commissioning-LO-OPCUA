@@ -1,8 +1,19 @@
-export declare const Positions: Readonly<{
+export declare const Objects: Readonly<{
     context: "Gestion des équipements";
-    category: "Typologie";
-    groupe: "Postes de travail";
+    category: "Commissioning télécommande";
+    groupe: "test 2";
 }>;
-export declare const LightControlPoint = "COMMAND_LIGHT";
-export declare const StoreControlPoint = "COMMAND_BLIND";
-export declare const HeatControlPoint = "COMMAND_TEMPERATURE";
+export declare const ZoneContext: Readonly<{
+    context: "Hardware Context Zones";
+}>;
+export declare const PositionContext: Readonly<{
+    context: "Hardware Context Position Groupe";
+}>;
+export declare const controlPointProfil = "Commissioning";
+export declare const controlPointNames: string[];
+export declare const BalastControlPoint = "Has Balast";
+export declare const GroupControlPoint = "Has Group";
+export declare const ZoneControlPoint = "Has Zone";
+export declare const DuplicatedZoneControlPoint = "Has Duplicated Zone";
+export declare const IntegrationControlPoint = "Monitored/Integration";
+export declare const OPCUAControlPoint = "Monitored/OPCUA";

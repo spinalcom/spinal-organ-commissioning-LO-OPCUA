@@ -1,6 +1,6 @@
 "use strict";
 /*
- * Copyright 2022 SpinalCom - www.spinalcom.com
+ * Copyright 2025 SpinalCom - www.spinalcom.com
  *
  * This file is part of SpinalCore.
  *
@@ -23,13 +23,31 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.HeatControlPoint = exports.StoreControlPoint = exports.LightControlPoint = exports.Positions = void 0;
-exports.Positions = Object.freeze({
+exports.OPCUAControlPoint = exports.IntegrationControlPoint = exports.DuplicatedZoneControlPoint = exports.ZoneControlPoint = exports.GroupControlPoint = exports.BalastControlPoint = exports.controlPointNames = exports.controlPointProfil = exports.PositionContext = exports.ZoneContext = exports.Objects = void 0;
+exports.Objects = Object.freeze({
     context: "Gestion des équipements",
-    category: "Typologie",
-    groupe: "Postes de travail"
+    category: "Commissioning télécommande",
+    groupe: "test 2"
 });
-exports.LightControlPoint = "COMMAND_LIGHT";
-exports.StoreControlPoint = "COMMAND_BLIND";
-exports.HeatControlPoint = "COMMAND_TEMPERATURE";
+exports.ZoneContext = Object.freeze({
+    context: "Hardware Context Zones"
+});
+exports.PositionContext = Object.freeze({
+    context: "Hardware Context Position Groupe"
+});
+exports.controlPointProfil = "Commissioning";
+exports.controlPointNames = [
+    "Has Balast",
+    "Has Group",
+    "Has Zone",
+    "Has Duplicated Zone",
+    "Monitored/Integration",
+    "Monitored/OPCUA"
+];
+exports.BalastControlPoint = "Has Balast";
+exports.GroupControlPoint = "Has Group";
+exports.ZoneControlPoint = "Has Zone";
+exports.DuplicatedZoneControlPoint = "Has Duplicated Zone";
+exports.IntegrationControlPoint = "Monitored/Integration";
+exports.OPCUAControlPoint = "Monitored/OPCUA";
 //# sourceMappingURL=constants.js.map

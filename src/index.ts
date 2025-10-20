@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 SpinalCom - www.spinalcom.com
+ * Copyright 2025 SpinalCom - www.spinalcom.com
  *
  * This file is part of SpinalCore.
  *
@@ -28,7 +28,7 @@ import cron = require('node-cron');
 import * as config from "../config";
 import {Utils} from "./utils"
 import * as constants from "./constants"
-import { PositionData,PositionsDataStore,PositionTempData } from "./types";
+import { } from "./types";
 const utils = new Utils();
 
 
@@ -36,7 +36,7 @@ const utils = new Utils();
 class SpinalMain {
     connect: spinal.FileSystem;
 
-    private CP_to_PositionsToData = new Map<string, PositionData>();
+    //private CP_to_PositionsToData = new Map<string, PositionData>();
 
     constructor() { 
         const url = `${config.hubProtocol}://${config.userId}:${config.userPassword}@${config.hubHost}:${config.hubPort}/`;
@@ -52,7 +52,6 @@ class SpinalMain {
     public init() {
         return new Promise((resolve, reject) => {
         
-
             spinalCore.load(this.connect, config.digitalTwinPath, async (graph: any) => {
                 await SpinalGraphService.setGraph(graph);
                 console.log("Connected to the hub");
@@ -69,82 +68,63 @@ class SpinalMain {
      * The main function of the class
      */
     public async MainJob() {
-        const contextName = constants.Positions.context;
-        const categoryName = constants.Positions.category;
-        const groupName = constants.Positions.groupe;
+        const contextName = constants.Objects.context;
+        const categoryName = constants.Objects.category;
+        const groupName = constants.Objects.groupe;
 
-        const Positions = await utils.getPositions(contextName, categoryName, groupName); 
+        const objects = await utils.getObjects(contextName, categoryName, groupName);
+        //const test = objects.slice(0, 30);
+        //console.log("Objects:", objects);
+
+
+        const chunkSize = 100; // define chunk size
         
-        this.LightControl(Positions);
-        this.StoresControl(Positions);
-        this.TempControl(Positions);
+        console.log("start Integration Data Handler");
 
+        for (let i = 0; i < objects.length; i += chunkSize) {
+            console.log("Processing object number: ", i, "/", chunkSize);
+            const chunk = objects.slice(i, i + chunkSize);
+            await Promise.all(chunk.map(item => utils.IntegDataHandler(item)));
+            console.log("Processed chunk: ", i + chunkSize, "/", objects.length);
+        }
+        console.log("Done Integration Data Handler");
+
+        //Process OPCUA
+
+        console.log("start Opcua Data Handler");
+        for (let i = 0; i < objects.length; i += chunkSize) {
+            console.log("Processing object number: ", i, "/", chunkSize);
+            const chunk = objects.slice(i, i + chunkSize);
+            await Promise.all(chunk.map(item => utils.OpcuaDataHandler(item)));
+            console.log("Processed chunk: ", i + chunkSize, "/", objects.length);
+        }
+        console.log("Done Opcua Data Handler");
+        console.log("Done main job");
     }
 
-    public async getPositionDataLight(position: SpinalNodeRef): Promise<PositionData> {
-        const CP = await utils.getCommandControlPoint(position.id.get(), constants.LightControlPoint);
-        const PosINFO = await utils.getGroupsForPosition(position.id.get());
-        return { position, CP, PosINFO };
-    }
-    public async getPositionDataStore(position: SpinalNodeRef): Promise<PositionsDataStore> {
-        const CP = await utils.getCommandControlPoint(position.id.get(), constants.StoreControlPoint);
-        const storeINFO = await utils.getStoreForPosition(position.id.get());
-        return { position, CP, storeINFO};
-    }
+        
     
-    public async getPositionTempData(position: SpinalNodeRef):Promise<PositionTempData>{
-        const CP = await utils.getCommandControlPoint(position.id.get(), constants.HeatControlPoint);
-        const TempEndpoint = await utils.getTempEndpoint(position.id.get())
-        return {position,CP,TempEndpoint}
-    }
+
    
-    public async LightControl(Positions: SpinalNodeRef[]) {
-        
-        
-        const promises = Positions.map(async (pos: SpinalNodeRef) => {
-            const posData = await this.getPositionDataLight(pos);
-            this.CP_to_PositionsToData.set(posData.CP.id.get(), posData);
-            return posData;
-        });
-        
-        const PosList = await Promise.all(promises);
-        await utils.BindPositionsToGrpDALI(PosList);
-        console.log("done binding light control");
-        
-}
-
-public async StoresControl(Positions: SpinalNodeRef[]) {
-        
-    
-    const promeses2 = Positions.map(async (pos: SpinalNodeRef) => {
-        const PosStoreData = this.getPositionDataStore(pos);
-        return PosStoreData;});
-
-    const storeList = await Promise.all(promeses2);
-    await utils.BindStoresControlPoint(storeList);
-    
-   console.log("done binding store control");
    
-}
-public async TempControl(Positions: SpinalNodeRef[]) {
+  
         
-    
-    const promeses3= Positions.map(async (pos: SpinalNodeRef) => {
-        const PosTempData = this.getPositionTempData(pos);
-        return PosTempData;});
-    const TempDataList = await Promise.all(promeses3);
-    await utils.BindTempControlPoint(TempDataList);
-    console.log("done binding temp control");
-   
-     
-}
-}
 
+
+
+}
 async function Main() {
     try {
         console.log('Organ Start');
         const spinalMain = new SpinalMain();
         await spinalMain.init();
+         
+         /*cron.schedule(`0 23 * * *`, async (): Promise<void> => {
+            console.log("Starting main job at 23:00");
+            await spinalMain.MainJob();
+            console.log("Main job finished");
+        });*/
+
         await spinalMain.MainJob();
         //process.exit(0);
     } 
