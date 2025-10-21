@@ -73,7 +73,7 @@ class SpinalMain {
         const groupName = constants.Objects.groupe;
 
         const objects = await utils.getObjects(contextName, categoryName, groupName);
-        const test = objects.slice(3299,4789);
+        //const test = objects.slice(3299,4789);
         //console.log("Objects:", objects);
 
 
@@ -81,11 +81,11 @@ class SpinalMain {
         
         console.log("start Integration Data Handler");
 
-        for (let i = 0; i < test.length; i += chunkSize) {
+        for (let i = 0; i < objects.length; i += chunkSize) {
             //console.log("Processing object number: ", i, "/", chunkSize);
-            const chunk = test.slice(i, i + chunkSize);
+            const chunk = objects.slice(i, i + chunkSize);
             await Promise.all(chunk.map(item => utils.IntegDataHandler(item)));
-            console.log("Processed chunk: ", i + chunkSize, "/", test.length);
+            console.log("Processed chunk: ", i + chunkSize, "/", objects.length);
         }
         console.log("Done Integration Data Handler");
 
