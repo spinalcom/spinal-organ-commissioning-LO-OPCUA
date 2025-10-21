@@ -126,12 +126,15 @@ public async getControlPoint(ObjectId: string,controlPointNames: string[], objec
           case constants.IntegrationControlPoint:
             objectData.IntegrationCP = bmsEndPoint;
             break;
-            case constants.DuplicatedZoneControlPoint:
+          case constants.DuplicatedZoneControlPoint:
                 objectData.DuplicatedZoneCP = bmsEndPoint;
                 break;
           case constants.OPCUAControlPoint:
             objectData.OPCUACP = bmsEndPoint;
             break;
+          case constants.CorrectBalastControlPoint:
+                objectData.CorrectBalastCP = bmsEndPoint;
+                break; 
         }
       }
     }
@@ -254,8 +257,35 @@ public async getSubnetwork(elementID:string): Promise<string | undefined> {
 
     }
 
+    public async doubleCheckBalast(balastID: string, itemID: string): Promise<boolean> {
+        try {
+            const balastNode = SpinalGraphService.getRealNode(balastID);
+                const opcuaAttribute = await attributeService.findOneAttributeInCategory(balastNode, "OPC Attributes", "Name");
+                if (opcuaAttribute !== -1) {
+                    const opcuaName = opcuaAttribute.value.get();
+                    const itemNode = SpinalGraphService.getRealNode(itemID);
+                        const itemOpcuaAttribute = await attributeService.findOneAttributeInCategory(itemNode, "OPC Attributes", "LO_Nom_Référence");
+                        if (itemOpcuaAttribute !== -1) {
+                            const itemOpcuaName = itemOpcuaAttribute.value.get();
+                            if (opcuaName === itemOpcuaName) {
+                                return true;
+                            } else {
+                                console.log("Balast OPCUA Name does not match with LO Nom Référence:", opcuaName, "!==", itemOpcuaName);
+                                return false;
+                            }
+                        }
+                }
+            
+            return false;
 
-        
+        } catch (error) {
+            console.error("Error in doubleCheckBalast:", error);
+            return false;
+        }
+
+    }
+
+
    
     public async IntegDataHandler(item: SpinalNodeRef) {
 
@@ -266,12 +296,14 @@ public async getSubnetwork(elementID:string): Promise<string | undefined> {
             DuplicatedZoneCP: undefined,
             IntegrationCP: undefined,
             OPCUACP: undefined,
+            CorrectBalastCP: undefined
+
         };
 
         //console.log("in datahandler")
         const getControlEndPoints = await this.getControlPoint(item.id.get(), constants.controlPointNames, objectData);
 
-        if (getControlEndPoints.IntegrationCP) {
+        if (getControlEndPoints.IntegrationCP && getControlEndPoints.CorrectBalastCP) {
 
 
             //Initialize  control point to false
@@ -280,31 +312,35 @@ public async getSubnetwork(elementID:string): Promise<string | undefined> {
             //console.log(bmsEndPoints);
             if (bmsEndPoints.length != 0) {
                 const balast = bmsEndPoints[0]
+                const doubleCheckBalast = await this.doubleCheckBalast(balast.id.get(), item.id.get());
+                if (doubleCheckBalast != false) {
+                    await networkService.setEndpointValue(getControlEndPoints.CorrectBalastCP!.id.get(), true);
+                    const groupNumber = await this.getGroupNumber(balast.id.get());
+                    if (groupNumber != 'null') {
 
-                const groupNumber = await this.getGroupNumber(balast.id.get());
-                if (groupNumber != 'null') {
+                        const subnetworkID = await this.getSubnetwork(balast.id.get());
+                        if (subnetworkID != undefined) {
+                            //console.log("Subnetwork ID found:", subnetworkID);
+                            const grpInPositionContext = await this.FindGrpInContext(constants.PositionContext.context, "network", groupNumber, subnetworkID!);
+                            if (grpInPositionContext != false) {
+                                const grpDaliInZone = await this.FindGrpInContext(constants.ZoneContext.context, "network", groupNumber, subnetworkID!);
+                                if (grpDaliInZone != false) {
+                                    //console.log("Zone found for group", groupNumber, ":", grpDaliInZone.id.get());
+                                    const doubleCheck = await this.DoubleCheckZone(grpDaliInZone);
+                                    //console.log("Double check for multiple zones for group", groupNumber, ":", doubleCheck);
+                                    if (doubleCheck) {
+                                        await networkService.setEndpointValue(getControlEndPoints.IntegrationCP.id.get(), true)
+                                    }
 
-                    const subnetworkID = await this.getSubnetwork(balast.id.get());
-                    if (subnetworkID != undefined) {
-                        //console.log("Subnetwork ID found:", subnetworkID);
-                        const grpInPositionContext = await this.FindGrpInContext(constants.PositionContext.context, "network", groupNumber, subnetworkID!);
-                        if (grpInPositionContext != false) {
-                            const grpDaliInZone = await this.FindGrpInContext(constants.ZoneContext.context, "network", groupNumber, subnetworkID!);
-                            if (grpDaliInZone != false) {
-                                //console.log("Zone found for group", groupNumber, ":", grpDaliInZone.id.get());
-                                const doubleCheck = await this.DoubleCheckZone(grpDaliInZone);
-                                //console.log("Double check for multiple zones for group", groupNumber, ":", doubleCheck);
-                                if (doubleCheck) {
-                                    await networkService.setEndpointValue(getControlEndPoints.IntegrationCP.id.get(), true)
+
                                 }
-
-
                             }
+
+
                         }
-
-
                     }
                 }
+                
             }
         }
 
@@ -377,6 +413,7 @@ public async getZoneAttributeFromGrpDALI(subnetworkID: string, grpNumber :string
             DuplicatedZoneCP: undefined,
             IntegrationCP: undefined,
             OPCUACP: undefined,
+            CorrectBalastCP: undefined
         };
 
         //console.log("in datahandler")

@@ -82,7 +82,7 @@ class SpinalMain {
         console.log("start Integration Data Handler");
 
         for (let i = 0; i < objects.length; i += chunkSize) {
-            console.log("Processing object number: ", i, "/", chunkSize);
+            //console.log("Processing object number: ", i, "/", chunkSize);
             const chunk = objects.slice(i, i + chunkSize);
             await Promise.all(chunk.map(item => utils.IntegDataHandler(item)));
             console.log("Processed chunk: ", i + chunkSize, "/", objects.length);

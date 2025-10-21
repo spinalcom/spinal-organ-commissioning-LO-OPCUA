@@ -27,7 +27,7 @@
 export const Objects = Object.freeze({
     context: "Gestion des équipements",
     category: "Commissioning télécommande",
-    groupe:"test"
+    groupe:"test 2"
 });
 export const ZoneContext = Object.freeze({
     context: "Hardware Context Zones"
@@ -46,7 +46,8 @@ export const controlPointNames = [
     "Has Zone",
     "Has Duplicated Zone",
     "Monitored/Integration",
-    "Monitored/OPCUA"
+    "Monitored/OPCUA",
+    "Correct Balast"
 ];
 export const BalastControlPoint = "Has Balast"
 export const GroupControlPoint = "Has Group"
@@ -54,6 +55,7 @@ export const ZoneControlPoint="Has Zone"
 export const DuplicatedZoneControlPoint="Has Duplicated Zone"
 export const IntegrationControlPoint="Monitored/Integration"
 export const OPCUAControlPoint="Monitored/OPCUA"
+export const CorrectBalastControlPoint="Correct Balast"
 
 
 
