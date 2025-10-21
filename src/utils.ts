@@ -148,14 +148,24 @@ public async getControlPoint(ObjectId: string,controlPointNames: string[], objec
 }
 
 public async getGroupNumber(bmsendpointID: string): Promise<string> {
-  //console.log("Getting group number for endpoint ID:", bmsendpointID);
-  const children = await SpinalGraphService.getChildren(bmsendpointID, ["hasBmsEndpoint"]);
-  const groupChild = children.find(child => child.name.get() === "Groups");
-  if(groupChild){
-    const groupNumber = (await groupChild.element.load()).currentValue.get();
-    return groupNumber;
+  try {
+    const children = await SpinalGraphService.getChildren(bmsendpointID, ["hasBmsEndpoint"]);
+    const groupChild = children.find(child => child.name && child.name.get() === "Groups");
+
+    if (groupChild) {
+      const groupElement = await groupChild.element.load();
+      if (groupElement && groupElement.currentValue) {
+        return groupElement.currentValue.get().toString();
+      }
+    }
+
+    return 'null';
+  } catch (error) {
+    console.error("Error in getGroupNumber:", error);
+    return 'null';
   }
 }
+
 /*public async FindGrpInContext(ContextName: string, nodeType: string, grpNumber: string,subnetworkID :string): Promise<any|false> {
     try{
     
@@ -232,7 +242,7 @@ public async getSubnetwork(elementID:string): Promise<string | undefined> {
         return undefined;
     }
 }
-    public async DoubleCheckZone(Bmsgrp: any): Promise<boolean> {
+    public async DoubleCheckZone(Bmsgrp: any, item: SpinalNodeRef): Promise<boolean> {
         try {
             const netGroups = (await SpinalGraphService.getParents(Bmsgrp.id.get(), ["hasBmsEndpoint"])).filter(e => e.type.get() == "network");
 
@@ -245,7 +255,7 @@ public async getSubnetwork(elementID:string): Promise<string | undefined> {
             );
             const zoneList = zones.flat();
             if (zoneList.length > 1) {
-                console.log("Multiple zones found for group", Bmsgrp.name.get());
+                console.log("Multiple zones found for :", item.name.get());
                 return false;
             } else {
                 return true;
@@ -316,7 +326,7 @@ public async getSubnetwork(elementID:string): Promise<string | undefined> {
                 if (doubleCheckBalast != false) {
                     await networkService.setEndpointValue(getControlEndPoints.CorrectBalastCP!.id.get(), true);
                     const groupNumber = await this.getGroupNumber(balast.id.get());
-                    if (groupNumber != 'null') {
+                    if (groupNumber != 'null' && groupNumber != "") {
 
                         const subnetworkID = await this.getSubnetwork(balast.id.get());
                         if (subnetworkID != undefined) {
@@ -326,7 +336,7 @@ public async getSubnetwork(elementID:string): Promise<string | undefined> {
                                 const grpDaliInZone = await this.FindGrpInContext(constants.ZoneContext.context, "network", groupNumber, subnetworkID!);
                                 if (grpDaliInZone != false) {
                                     //console.log("Zone found for group", groupNumber, ":", grpDaliInZone.id.get());
-                                    const doubleCheck = await this.DoubleCheckZone(grpDaliInZone);
+                                    const doubleCheck = await this.DoubleCheckZone(grpDaliInZone,item);
                                     //console.log("Double check for multiple zones for group", groupNumber, ":", doubleCheck);
                                     if (doubleCheck) {
                                         await networkService.setEndpointValue(getControlEndPoints.IntegrationCP.id.get(), true)

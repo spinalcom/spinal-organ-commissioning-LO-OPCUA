@@ -27,7 +27,7 @@
 export const Objects = Object.freeze({
     context: "Gestion des équipements",
     category: "Commissioning télécommande",
-    groupe:"test 2"
+    groupe:"Luminaire - Open space"
 });
 export const ZoneContext = Object.freeze({
     context: "Hardware Context Zones"
