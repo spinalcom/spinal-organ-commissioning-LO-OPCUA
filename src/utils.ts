@@ -318,6 +318,7 @@ public async getSubnetwork(elementID:string): Promise<string | undefined> {
 
             //Initialize  control point to false
             await networkService.setEndpointValue(getControlEndPoints.IntegrationCP!.id.get(), false);
+            await networkService.setEndpointValue(getControlEndPoints.CorrectBalastCP!.id.get(), false);
             const bmsEndPoints = await SpinalGraphService.getChildren(item.id.get(), ["hasBmsEndpoint"]);
             //console.log(bmsEndPoints);
             if (bmsEndPoints.length != 0) {
