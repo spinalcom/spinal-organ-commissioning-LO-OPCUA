@@ -22,6 +22,9 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 
+
+import path = require("path");
+require('dotenv').config({path: path.resolve(__dirname, '../.env')});
 import {SpinalGraphService, SpinalNode, SpinalNodeRef} from "spinal-env-viewer-graph-service";
 import {spinalCore,FileSystem} from "spinal-core-connectorjs_type";
 import cron = require('node-cron');
@@ -36,7 +39,7 @@ const utils = new Utils();
 class SpinalMain {
     connect: spinal.FileSystem;
 
-    //private CP_to_PositionsToData = new Map<string, PositionData>();
+    
 
     constructor() { 
         const url = `${config.hubProtocol}://${config.userId}:${config.userPassword}@${config.hubHost}:${config.hubPort}/`;
@@ -68,39 +71,25 @@ class SpinalMain {
      * The main function of the class
      */
     public async MainJob() {
-        const contextName = constants.Objects.context;
-        const categoryName = constants.Objects.category;
-        const groupName = constants.Objects.groupe;
+        const { context, category, groupe } = constants.Objects;
+        const objects = await utils.getObjects(context, category, groupe);
+        const chunkSize = 100;
 
-        const objects = await utils.getObjects(contextName, categoryName, groupName);
-        //const test = objects.slice(3299,4789);
-        //console.log("Objects:", objects);
+        console.log(`Starting processing ${objects.length} objects in chunks of ${chunkSize}`);
 
+        // Process objects in chunks, removing them from the array after processing
+        while (objects.length > 0) {
+            const chunk = objects.splice(0, chunkSize);
+            await Promise.all(chunk.map(async (item) => {
+                await utils.OpcuaDataHandler(item);
+            }));
 
-        const chunkSize = 100; // define chunk size
-        
-        console.log("start Integration Data Handler");
-
-        for (let i = 0; i < objects.length; i += chunkSize) {
-            //console.log("Processing object number: ", i, "/", chunkSize);
-            const chunk = objects.slice(i, i + chunkSize);
-            await Promise.all(chunk.map(item => utils.IntegDataHandler(item)));
-            console.log("Processed chunk: ", i + chunkSize, "/", objects.length);
+            console.log(`Remaining objects: ${objects.length}`);
         }
-        console.log("Done Integration Data Handler");
 
-        //Process OPCUA
-
-        console.log("start Opcua Data Handler");
-        for (let i = 0; i < objects.length; i += chunkSize) {
-            console.log("Processing object number: ", i, "/", chunkSize);
-            const chunk = objects.slice(i, i + chunkSize);
-            await Promise.all(chunk.map(item => utils.OpcuaDataHandler(item)));
-            console.log("Processed chunk: ", i + chunkSize, "/", objects.length);
-        }
-        console.log("Done Opcua Data Handler");
         console.log("Done main job");
     }
+
 
         
     

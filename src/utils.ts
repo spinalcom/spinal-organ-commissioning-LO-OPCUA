@@ -297,9 +297,9 @@ public async getSubnetwork(elementID:string): Promise<string | undefined> {
 
 
    
-    public async IntegDataHandler(item: SpinalNodeRef) {
+    public async DataHandler(item: SpinalNodeRef) {
 
-        const objectData: ObjectData = {
+        let objectData: ObjectData = {
             BalastCP: undefined,
             GroupCP: undefined,
             ZoneCP: undefined,
@@ -311,22 +311,33 @@ public async getSubnetwork(elementID:string): Promise<string | undefined> {
         };
 
         //console.log("in datahandler")
-        const getControlEndPoints = await this.getControlPoint(item.id.get(), constants.controlPointNames, objectData);
+        let getControlEndPoints = await this.getControlPoint(item.id.get(), constants.controlPointNames, objectData);
 
-        if (getControlEndPoints.IntegrationCP && getControlEndPoints.CorrectBalastCP) {
+        if (getControlEndPoints.IntegrationCP && getControlEndPoints.CorrectBalastCP 
+            && getControlEndPoints.BalastCP && getControlEndPoints.GroupCP && 
+            getControlEndPoints.ZoneCP && getControlEndPoints.DuplicatedZoneCP && 
+            getControlEndPoints.OPCUACP) {
 
 
             //Initialize  control point to false
             await networkService.setEndpointValue(getControlEndPoints.IntegrationCP!.id.get(), false);
             await networkService.setEndpointValue(getControlEndPoints.CorrectBalastCP!.id.get(), false);
+            await networkService.setEndpointValue(getControlEndPoints.BalastCP.id.get(), false);
+            await networkService.setEndpointValue(getControlEndPoints.GroupCP.id.get(), false);
+            await networkService.setEndpointValue(getControlEndPoints.ZoneCP.id.get(), false);
+            await networkService.setEndpointValue(getControlEndPoints.DuplicatedZoneCP.id.get(), false);
+            await networkService.setEndpointValue(getControlEndPoints.OPCUACP.id.get(), false);
+            //Start the Processing
             const bmsEndPoints = await SpinalGraphService.getChildren(item.id.get(), ["hasBmsEndpoint"]);
             //console.log(bmsEndPoints);
             if (bmsEndPoints.length != 0) {
                 const balast = bmsEndPoints[0]
+                const groupNumber = await this.getGroupNumber(balast.id.get());
+                //integration data processing
                 const doubleCheckBalast = await this.doubleCheckBalast(balast.id.get(), item.id.get());
                 if (doubleCheckBalast != false) {
                     await networkService.setEndpointValue(getControlEndPoints.CorrectBalastCP!.id.get(), true);
-                    const groupNumber = await this.getGroupNumber(balast.id.get());
+                    
                     if (groupNumber != 'null' && groupNumber != "") {
 
                         const subnetworkID = await this.getSubnetwork(balast.id.get());
@@ -343,19 +354,54 @@ public async getSubnetwork(elementID:string): Promise<string | undefined> {
                                         await networkService.setEndpointValue(getControlEndPoints.IntegrationCP.id.get(), true)
                                     }
 
-
                                 }
                             }
-
-
                         }
                     }
                 }
+
+                //OPCUA data processing
+                await networkService.setEndpointValue(getControlEndPoints.BalastCP.id.get(), true);
+                if (groupNumber != 'null' && groupNumber != "") {
+                    await networkService.setEndpointValue(getControlEndPoints.GroupCP.id.get(), true)
+                    const subnetworkID = await this.getSubnetwork(balast.id.get());
+                    if (subnetworkID != undefined) {
+                        //console.log("Subnetwork ID found:", subnetworkID);
+                        const zoneInfo = await this.getZoneAttributeFromGrpDALI(subnetworkID, groupNumber);
+                        if (zoneInfo) {
+                            //console.log("Zone Info found:", zoneInfo);
+                            const zoneVerification = await this.getZoneFromOpcua(subnetworkID, zoneInfo);
+                            //console.log("zone exists : ",zoneVerification.zoneexists,"Double zone :", zoneVerification.zonedublicated);
+                            if (zoneVerification.zoneexists == true) {
+                                await networkService.setEndpointValue(getControlEndPoints.ZoneCP.id.get(), true)
+                                if (zoneVerification.zonedublicated == true) {
+                                    await networkService.setEndpointValue(getControlEndPoints.DuplicatedZoneCP.id.get(), true)
+                                    console.log("Skipping DuplicatedZoneCP set to false due to multiple zones for group", groupNumber, "object:", item.name.get());
+                                } else {
+                                    await networkService.setEndpointValue(getControlEndPoints.DuplicatedZoneCP.id.get(), false)
+                                    await networkService.setEndpointValue(getControlEndPoints.OPCUACP.id.get(), true)
+                                }
+                            }
+                        }
+                    }
+
+
+                }
+
+                ///bmsEndPoints.length = 0;
                 
             }
+            
+            
         }
+       
+        //objectData = null;
+        //getControlEndPoints = null;
 
     }
+ 
+
+
 public async getZoneAttributeFromGrpDALI(subnetworkID: string, grpNumber :string ): Promise< string | undefined> {
     const bmsgrp = (await SpinalGraphService.getChildren(subnetworkID, ["hasBmsEndpoint"])).find(e => e.name.get() == "Grp DALI" + " " + grpNumber);
     if(bmsgrp) {
@@ -446,21 +492,21 @@ public async getZoneAttributeFromGrpDALI(subnetworkID: string, grpNumber :string
                 await networkService.setEndpointValue(getControlEndPoints.BalastCP.id.get(), true);
                 const balast = bmsEndPoints[0]
                 const groupNumber = await this.getGroupNumber(balast.id.get());
-                if (groupNumber != 'null') {
+                if (groupNumber != 'null' && groupNumber != "") {
                     await networkService.setEndpointValue(getControlEndPoints.GroupCP.id.get(), true)
                     const subnetworkID = await this.getSubnetwork(balast.id.get());
                     if (subnetworkID != undefined) {
-                        console.log("Subnetwork ID found:", subnetworkID);
+                        //console.log("Subnetwork ID found:", subnetworkID);
                         const zoneInfo = await this.getZoneAttributeFromGrpDALI(subnetworkID, groupNumber);
                         if (zoneInfo) {
-                            console.log("Zone Info found:", zoneInfo);
+                            //console.log("Zone Info found:", zoneInfo);
                             const zoneVerification = await this.getZoneFromOpcua(subnetworkID, zoneInfo);
-                            console.log("zone exists : ",zoneVerification.zoneexists,"Double zone :", zoneVerification.zonedublicated);
+                            //console.log("zone exists : ",zoneVerification.zoneexists,"Double zone :", zoneVerification.zonedublicated);
                             if (zoneVerification.zoneexists == true) {
                                 await networkService.setEndpointValue(getControlEndPoints.ZoneCP.id.get(), true)
                                 if (zoneVerification.zonedublicated == true) {
                                     await networkService.setEndpointValue(getControlEndPoints.DuplicatedZoneCP.id.get(), true)
-                                    console.log("Skipping DuplicatedZoneCP set to true due to multiple zones for group", groupNumber, "object:", item.name.get());
+                                    console.log("DuplicatedZoneCP set to true due to multiple zones for group", groupNumber, "object:", item.name.get());
                                 } else {
                                     await networkService.setEndpointValue(getControlEndPoints.DuplicatedZoneCP.id.get(), false)
                                     await networkService.setEndpointValue(getControlEndPoints.OPCUACP.id.get(), true)
@@ -471,7 +517,7 @@ public async getZoneAttributeFromGrpDALI(subnetworkID: string, grpNumber :string
 
 
                 }
-
+                bmsEndPoints.length = 0;
 
             }
         }
