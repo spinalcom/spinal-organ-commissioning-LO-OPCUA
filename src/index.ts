@@ -73,18 +73,20 @@ class SpinalMain {
     public async MainJob() {
         const { context, category, groupe } = constants.Objects;
         const objects = await utils.getObjects(context, category, groupe);
+        const part1 = objects.slice(0, Math.floor(objects.length / 2));
+        const part2 = objects.slice(Math.floor(objects.length / 2));
         const chunkSize = 100;
 
-        console.log(`Starting processing ${objects.length} objects in chunks of ${chunkSize}`);
+        console.log(`Starting processing ${part1.length} objects in chunks of ${chunkSize}`);
 
         // Process objects in chunks, removing them from the array after processing
-        while (objects.length > 0) {
-            const chunk = objects.splice(0, chunkSize);
+        while (part1.length > 0) {
+            const chunk = part1.splice(0, chunkSize);
             await Promise.all(chunk.map(async (item) => {
                 await utils.OpcuaDataHandler(item);
             }));
 
-            console.log(`Remaining objects: ${objects.length}`);
+            console.log(`Remaining objects: ${part1.length}`);
         }
 
         console.log("Done main job");
